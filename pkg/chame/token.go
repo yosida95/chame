@@ -48,6 +48,9 @@ func (tok *Token) Valid() error {
 type JWTEpoch int64
 
 func (epoch JWTEpoch) Time() time.Time {
+	if epoch == 0 {
+		return time.Time{}
+	}
 	return time.Unix(int64(epoch), 0)
 }
 
