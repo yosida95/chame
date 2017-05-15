@@ -26,24 +26,37 @@ var (
 	table = make(map[*http.Request]context.Context)
 )
 
-func New(req *http.Request) context.Context {
-	mu.Lock()
-	defer mu.Unlock()
-
-	if ctx := table[req]; ctx != nil {
+func Acquire(req *http.Request) context.Context {
+	if ctx := FromRequest(req); ctx != nil {
 		return ctx
 	}
+	mu.Lock()
 	ctx := context.Background()
 	ctx = withTime(ctx)
+	setLocked(req, ctx)
+	mu.Unlock()
 	return ctx
+}
+
+func Release(req *http.Request) {
+	mu.Lock()
+	delete(table, req)
+	mu.Unlock()
 }
 
 func FromRequest(req *http.Request) context.Context {
 	mu.RLock()
-	ctx := table[req]
-	mu.RUnlock()
-	if ctx == nil {
-		return New(req)
-	}
-	return ctx
+	defer mu.RUnlock()
+
+	return table[req]
+}
+
+func setLocked(req *http.Request, ctx context.Context) {
+	table[req] = ctx
+}
+
+func Set(req *http.Request, ctx context.Context) {
+	mu.Lock()
+	setLocked(req, ctx)
+	mu.Unlock()
 }
