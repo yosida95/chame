@@ -34,6 +34,11 @@ func New(cfg *Config) http.Handler {
 		store:        cfg.Store,
 		httpCFactory: cfg.NewHTTPClient,
 	}
+	if chame.httpCFactory == nil {
+		chame.httpCFactory = func(context.Context) *http.Client {
+			return DefaultHTTPClient
+		}
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/", cfg.applyInterceptors(http.HandlerFunc(chame.ServeHome)))
