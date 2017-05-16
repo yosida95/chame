@@ -27,8 +27,8 @@ type Token struct {
 
 	Issuer    string   `json:"iss"`
 	Subject   string   `json:"sub"`
-	NotBefore JWTEpoch `json:"nbf"`
-	Expiry    JWTEpoch `json:"exp"`
+	NotBefore JWTEpoch `json:"nbf,omitempty"`
+	Expiry    JWTEpoch `json:"exp,omitempty"`
 }
 
 func (tok *Token) Valid() error {
