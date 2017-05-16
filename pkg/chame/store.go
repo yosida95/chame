@@ -24,4 +24,6 @@ type Store interface {
 	// the second return value.
 	// Otherwise GetVerifyingKey returns non-nil err as the second.
 	GetVerifyingKey(iss string, kid string) (key interface{}, err error)
+
+	GetSigningKey(iss string, kid string) (key interface{}, err error)
 }

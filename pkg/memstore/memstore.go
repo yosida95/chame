@@ -64,3 +64,11 @@ func (ms *MemStore) GetVerifyingKey(iss string, kid string) (interface{}, error)
 	}
 	return key, nil
 }
+
+func (ms *MemStore) GetSigningKey(iss string, kid string) (interface{}, error) {
+	key := ms.Get(iss, kid)
+	if key == nil {
+		return nil, fmt.Errorf("chame: key not found")
+	}
+	return key, nil
+}
