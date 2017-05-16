@@ -41,7 +41,11 @@ func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (st
 		mech = jwt.SigningMethodES256
 	}
 
-	signed, err := jwt.NewWithClaims(mech, token).SignedString(key)
+	jwtobj := jwt.NewWithClaims(mech, token)
+	if kid != "" {
+		jwtobj.Header["kid"] = kid
+	}
+	signed, err := jwtobj.SignedString(key)
 	if err != nil {
 		return "", errors.Wrap(err, "chame: failed to sign a token")
 	}
