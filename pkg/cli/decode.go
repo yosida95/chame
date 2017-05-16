@@ -15,48 +15,34 @@
 package cli
 
 import (
+	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/memstore"
-	"github.com/yosida95/chame/pkg/metadata"
-	"github.com/yosida95/chame/pkg/stdlogger"
+	"golang.org/x/net/context"
 )
 
-func newServeCmd() *cobra.Command {
+func newDecodeCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "serve",
-		Run: runServe,
+		Use: "decode",
+		Run: runDecode,
 	}
 
 	flags := cmd.PersistentFlags()
-	flags.StringVar(&flgListenAddr, "listen", "0.0.0.0:8080", "address and port chame will accept requests")
 	flags.StringVar(&flgFixedIssuer, "issuer", "https://chame.yosida95.com", "URL to identify token issuer")
 	flags.StringVar(&flgFixedSecret, "secret", "dummysecret", "HMAC shared secret to sign/verify tokens")
+	flags.StringVar(&flgTokenToDecode, "token", "", "signed token to decode")
 	return cmd
 }
 
-func runServe(cmd *cobra.Command, args []string) {
-	cfg := &chame.Config{
-		Store: memstore.Fixed(flgFixedIssuer, []byte(flgFixedSecret)),
+func runDecode(cmd *cobra.Command, args []string) {
+	store := memstore.Fixed(flgFixedIssuer, []byte(flgFixedSecret))
+	decoded, err := chame.DecodeToken(context.Background(), store, flgTokenToDecode)
+	if err != nil {
+		log.Printf("failed to decode token: %v", err)
 	}
-	cfg.UseInterceptor(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := metadata.FromRequest(req)
-			defer metadata.Release(req)
 
-			ctx = chame.NewContextWithLogger(ctx, stdlogger.Logger)
-			metadata.Set(req, ctx)
-
-			next.ServeHTTP(w, req)
-		})
-	})
-	chame := chame.New(cfg)
-
-	log.Printf("chame: listen chame on %q", flgListenAddr)
-	if err := http.ListenAndServe(flgListenAddr, chame); err != nil {
-		log.Printf("chame: failed to accept requests: %v", err)
-	}
+	fmt.Printf("%s\n", decoded)
 }

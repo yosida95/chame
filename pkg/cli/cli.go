@@ -20,12 +20,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	flgListenAddr  string
+	flgFixedIssuer string
+	flgFixedSecret string
+
+	flgUrlToEncode   string
+	flgTokenToDecode string
+)
+
 var rootCmd = &cobra.Command{
 	Use: "chame",
 }
 
 func init() {
 	rootCmd.AddCommand(
+		newEncodeCmd(),
+		newDecodeCmd(),
 		newServeCmd())
 }
 
