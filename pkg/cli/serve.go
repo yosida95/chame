@@ -50,10 +50,11 @@ func runServe(cmd *cobra.Command, args []string) {
 	}
 	cfg.UseInterceptor(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := metadata.Acquire(req)
+			ctx := metadata.FromRequest(req)
+			defer metadata.Release(req)
+
 			ctx = chame.NewContextWithLogger(ctx, stdlogger.Logger)
 			metadata.Set(req, ctx)
-			defer metadata.Release(req)
 
 			next.ServeHTTP(w, req)
 		})

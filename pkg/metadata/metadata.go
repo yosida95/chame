@@ -22,41 +22,39 @@ import (
 )
 
 var (
-	mu    sync.RWMutex
-	table = make(map[*http.Request]context.Context)
+	ctxsmu sync.Mutex
+	ctxs   = make(map[*http.Request]context.Context)
 )
 
-func Acquire(req *http.Request) context.Context {
-	if ctx := FromRequest(req); ctx != nil {
-		return ctx
-	}
-	mu.Lock()
-	ctx := context.Background()
-	ctx = withTime(ctx)
-	setLocked(req, ctx)
-	mu.Unlock()
-	return ctx
-}
-
-func Release(req *http.Request) {
-	mu.Lock()
-	delete(table, req)
-	mu.Unlock()
+func New(parent context.Context) context.Context {
+	return withTime(parent)
 }
 
 func FromRequest(req *http.Request) context.Context {
-	mu.RLock()
-	defer mu.RUnlock()
+	ctxsmu.Lock()
+	if ctx := ctxs[req]; ctx != nil {
+		ctxsmu.Unlock()
+		return ctx
+	}
 
-	return table[req]
+	ctx := New(context.Background())
+	setLocked(req, ctx)
+	ctxsmu.Unlock()
+	return ctx
 }
 
 func setLocked(req *http.Request, ctx context.Context) {
-	table[req] = ctx
+	ctxs[req] = ctx
 }
 
 func Set(req *http.Request, ctx context.Context) {
-	mu.Lock()
+	ctxsmu.Lock()
 	setLocked(req, ctx)
-	mu.Unlock()
+	ctxsmu.Unlock()
+}
+
+func Release(req *http.Request) {
+	ctxsmu.Lock()
+	delete(ctxs, req)
+	ctxsmu.Unlock()
 }
