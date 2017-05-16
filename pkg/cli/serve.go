@@ -39,7 +39,7 @@ func newServeCmd() *cobra.Command {
 
 	flags := cmd.PersistentFlags()
 	flags.StringVar(&flgListenAddr, "listen", "0.0.0.0:8080", "address and port chame will accept requests")
-	flags.StringVar(&flgFixedIssuer, "issuer", "https://chame.yosida95.com/", "URL to identify token issuer")
+	flags.StringVar(&flgFixedIssuer, "issuer", "https://chame.yosida95.com", "URL to identify token issuer")
 	flags.StringVar(&flgFixedSecret, "secret", "dummysecret", "HMAC shared secret to sign/verify tokens")
 	return cmd
 }
