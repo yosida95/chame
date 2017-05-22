@@ -23,6 +23,7 @@ import (
 const (
 	headerKeyAllow       = "Allow"
 	headerKeyContentType = "Content-Type"
+	headerKeyServer      = "Server"
 )
 
 func canonicalizedMIMEHeaderKeys(v []string) []string {
@@ -143,14 +144,15 @@ var securityHeaders = map[string]string{
 	"X-XSS-Protection":        "1; mode=block",
 }
 
-func EmitSecurityHeaders(w http.ResponseWriter) {
+func emitCommonHeaders(w http.ResponseWriter) {
+	h := w.Header()
+	h.Set(headerKeyServer, "chame")
 	for k := range securityHeaders {
-		w.Header().Set(k, securityHeaders[k])
+		h.Set(k, securityHeaders[k])
 	}
 }
 
 func httpError(w http.ResponseWriter, code int) {
-	EmitSecurityHeaders(w)
 	http.Error(w, http.StatusText(code), code)
 }
 
@@ -171,7 +173,6 @@ func httpErrorIfMethodNotAllowed(w http.ResponseWriter, req *http.Request, allow
 	w.Header().Set(headerKeyAllow, strings.Join(allowed, ","))
 	if req.Method == http.MethodOptions {
 		// NOTE(yosida95): foundOptions is always false here.
-		EmitSecurityHeaders(w)
 		w.WriteHeader(http.StatusNoContent)
 	} else {
 		httpError(w, http.StatusMethodNotAllowed)

@@ -47,6 +47,7 @@ func New(cfg *Config) http.Handler {
 }
 
 func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
+	emitCommonHeaders(w)
 	if req.URL.Path != "/" {
 		httpError(w, http.StatusNotFound)
 		return
@@ -62,6 +63,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 const proxyPrefix = "/i/"
 
 func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
+	emitCommonHeaders(w)
 	if !httpErrorIfMethodNotAllowed(w, userReq, http.MethodGet) {
 		return
 	}
@@ -103,7 +105,6 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 		}
 
 		CopyResponseHeaders(w, resp)
-		EmitSecurityHeaders(w)
 		w.WriteHeader(code)
 		if _, err := io.Copy(w, resp.Body); err != nil {
 			log.Errorf("chame: failed to forward origin response to the client: %v", err)
@@ -111,7 +112,6 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 		}
 	case http.StatusNotModified:
 		CopyResponseHeaders(w, resp)
-		EmitSecurityHeaders(w)
 		w.WriteHeader(code)
 	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther,
 		http.StatusTemporaryRedirect, 308: // http.StatusPermanentRedirect
