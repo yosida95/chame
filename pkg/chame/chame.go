@@ -54,8 +54,9 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 	if !httpRespondIfMethodNotAllowed(w, req, http.MethodGet) {
 		return
 	}
+	w.Header().Set("Content-Type", "text/plain;charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hello, this is chame!\nSee https://github.com/yosida95/chame.")
+	fmt.Fprintf(w, "Hello, this is chame!\nVisit https://github.com/yosida95/chame.")
 }
 
 const proxyPrefix = "/i/"
