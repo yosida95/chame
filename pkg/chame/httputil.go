@@ -20,6 +20,11 @@ import (
 	"strings"
 )
 
+const (
+	headerKeyAllow       = "Allow"
+	headerKeyContentType = "Content-Type"
+)
+
 func canonicalizedMIMEHeaderKeys(v []string) []string {
 	for i := range v {
 		v[i] = textproto.CanonicalMIMEHeaderKey(v[i])
@@ -163,7 +168,7 @@ func httpRespondIfMethodNotAllowed(w http.ResponseWriter, req *http.Request, all
 		allowed = append(allowed, http.MethodOptions)
 	}
 
-	w.Header().Set("Allow", strings.Join(allowed, ","))
+	w.Header().Set(headerKeyAllow, strings.Join(allowed, ","))
 	if req.Method == http.MethodOptions {
 		// NOTE(yosida95): foundOptions is always false here.
 		EmitSecurityHeaders(w)

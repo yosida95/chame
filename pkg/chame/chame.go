@@ -54,7 +54,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 	if !httpRespondIfMethodNotAllowed(w, req, http.MethodGet) {
 		return
 	}
-	w.Header().Set("Content-Type", "text/plain;charset=UTF-8")
+	w.Header().Set(headerKeyContentType, "text/plain;charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Hello, this is chame!\nVisit https://github.com/yosida95/chame.")
 }
@@ -95,7 +95,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 
 	switch code := resp.StatusCode; code {
 	case http.StatusOK:
-		ctype, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		ctype, _, err := mime.ParseMediaType(resp.Header.Get(headerKeyContentType))
 		if err != nil || !IsAcceptedContentType(ctype) {
 			log.Infof("chame: unacceptable Content-Type")
 			httpError(w, http.StatusBadRequest)
