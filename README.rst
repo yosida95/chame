@@ -10,9 +10,9 @@ Demo
 A demo instance of chame is deployed and running on Google App Engine at http://chame.yosida95.com/.
 
 Original URL
-    https://yosida95.kvs.gehirn.jp/icon_200x200.png
+    http://kvs.gehirn.jp/yosida95/icon_200x200.png
 Chame Proxied URL
-    http://chame.yosida95.com/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLnlvc2lkYTk1LmNvbSIsInN1YiI6Imh0dHBzOi8veW9zaWRhOTUua3ZzLmdlaGlybi5qcC9pY29uXzIwMHgyMDAucG5nIn0.qWZOZzqKkIz6j6zAsu3DdapYYR8yi32rzxFCA1BvK58
+    https://chame-166115.appspot.com/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLnlvc2lkYTk1LmNvbSIsInN1YiI6Imh0dHA6Ly9rdnMuZ2VoaXJuLmpwL3lvc2lkYTk1L2ljb25fMjAweDIwMC5wbmcifQ.2LztWUS-DMv5mNSsdYQHsEc7tiXUz1YIvALh4fcvcek
 
 
 Quick Start
