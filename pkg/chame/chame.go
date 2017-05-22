@@ -47,6 +47,10 @@ func New(cfg *Config) http.Handler {
 }
 
 func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
+	if req.URL.Path != "/" {
+		httpError(w, http.StatusNotFound)
+		return
+	}
 	if !httpRespondIfMethodNotAllowed(w, req, http.MethodGet) {
 		return
 	}
