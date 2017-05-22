@@ -154,7 +154,7 @@ func httpError(w http.ResponseWriter, code int) {
 	http.Error(w, http.StatusText(code), code)
 }
 
-func httpRespondIfMethodNotAllowed(w http.ResponseWriter, req *http.Request, allowed ...string) bool {
+func httpErrorIfMethodNotAllowed(w http.ResponseWriter, req *http.Request, allowed ...string) bool {
 	foundOptions := false
 	for i := range allowed {
 		if allowed[i] == req.Method {

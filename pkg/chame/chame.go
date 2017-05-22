@@ -51,7 +51,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 		httpError(w, http.StatusNotFound)
 		return
 	}
-	if !httpRespondIfMethodNotAllowed(w, req, http.MethodGet) {
+	if !httpErrorIfMethodNotAllowed(w, req, http.MethodGet) {
 		return
 	}
 	w.Header().Set(headerKeyContentType, "text/plain;charset=UTF-8")
@@ -62,7 +62,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 const proxyPrefix = "/i/"
 
 func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
-	if !httpRespondIfMethodNotAllowed(w, userReq, http.MethodGet) {
+	if !httpErrorIfMethodNotAllowed(w, userReq, http.MethodGet) {
 		return
 	}
 	ctx := metadata.FromRequest(userReq)
