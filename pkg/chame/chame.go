@@ -98,7 +98,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	switch code := resp.StatusCode; code {
 	case http.StatusOK:
 		ctype, _, err := mime.ParseMediaType(resp.Header.Get(headerKeyContentType))
-		if err != nil || !IsAcceptedContentType(ctype) {
+		if err != nil || !IsAcceptableContentType(ctype) {
 			log.Infof("chame: unacceptable Content-Type")
 			httpError(w, http.StatusBadRequest)
 			return
