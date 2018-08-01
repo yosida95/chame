@@ -7,12 +7,12 @@ chame was inspired a lot by `atmos/camo`_.
 Demo
 ----
 
-A demo instance of chame is deployed and running on Google App Engine at http://chame.yosida95.com/.
+A demo instance of chame is deployed and running on Google App Engine at https://chame.yosida95.com/.
 
 Original URL
     http://kvs.gehirn.jp/yosida95/icon_200x200.png
 Chame Proxied URL
-    https://chame-166115.appspot.com/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLnlvc2lkYTk1LmNvbSIsInN1YiI6Imh0dHA6Ly9rdnMuZ2VoaXJuLmpwL3lvc2lkYTk1L2ljb25fMjAweDIwMC5wbmcifQ.2LztWUS-DMv5mNSsdYQHsEc7tiXUz1YIvALh4fcvcek
+    https://chame.yosida95.com/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLnlvc2lkYTk1LmNvbSIsInN1YiI6Imh0dHA6Ly9rdnMuZ2VoaXJuLmpwL3lvc2lkYTk1L2ljb25fMjAweDIwMC5wbmcifQ.2LztWUS-DMv5mNSsdYQHsEc7tiXUz1YIvALh4fcvcek
 
 
 Quick Start
@@ -71,6 +71,12 @@ You can deploy chame with Google's `Cloud SDK`_ like below.
 
     $ cd $GOPATH/src/github.com/yosida95/chame/appengine
     $ gcloud app deploy --project YOUR_PROJECT app.yaml
+
+
+User(s)
+-------
+
+- `Gehirn Inc. <https://www.gehirn.co.jp/>`_ ( https://chame.usercontent.jp/, My employer )
 
 
 Author
