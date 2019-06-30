@@ -22,7 +22,7 @@ import (
 
 type timeKey struct{}
 
-func withTime(ctx context.Context) context.Context {
+func WithTime(ctx context.Context) context.Context {
 	return context.WithValue(ctx, timeKey{}, time.Now().UTC())
 }
 

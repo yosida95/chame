@@ -12,38 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package devserver
+package main
 
 import (
+	"flag"
+	"fmt"
+	"log"
 	"net/http"
 	"os"
 
-	chame_appengine "github.com/yosida95/chame/pkg/appengine"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/memstore"
 	"github.com/yosida95/chame/pkg/metadata"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/urlfetch"
+	"github.com/yosida95/chame/pkg/stdlogger"
 )
 
-func init() {
+func main() {
+	flag.Parse()
+
+	port := os.Getenv("PORT")
 	fixedIssuer := os.Getenv("CHAME_ISSUER")
 	fixedSecret := os.Getenv("CHAME_SECRET")
 
 	cfg := &chame.Config{
-		Store:         memstore.Fixed(fixedIssuer, []byte(fixedSecret)),
-		NewHTTPClient: urlfetch.Client,
+		Store: memstore.Fixed(fixedIssuer, []byte(fixedSecret)),
 	}
 	cfg.UseInterceptor(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := appengine.NewContext(req)
-			ctx = chame.NewContextWithLogger(ctx, chame_appengine.NewLogger(ctx))
+			ctx := metadata.New(req.Context())
+			ctx = chame.NewContextWithLogger(ctx, stdlogger.Logger)
 
-			metadata.Set(req, ctx)
-			defer metadata.Release(req)
-			next.ServeHTTP(w, req)
+			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	})
+
 	chame := chame.New(cfg)
-	http.Handle("/", chame)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), chame); err != nil {
+		log.Fatal(err)
+	}
 }

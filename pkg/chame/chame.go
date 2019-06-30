@@ -20,7 +20,6 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/yosida95/chame/pkg/metadata"
 	"golang.org/x/net/context"
 )
 
@@ -67,7 +66,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	if !httpErrorIfMethodNotAllowed(w, userReq, http.MethodGet) {
 		return
 	}
-	ctx := metadata.FromRequest(userReq)
+	ctx := userReq.Context()
 	log := LoggerFromContext(ctx)
 
 	signedURL := userReq.URL.Path[len(proxyPrefix):]

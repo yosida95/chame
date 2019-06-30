@@ -1,11 +1,10 @@
 ---
-runtime: go
-api_version: go1.9
+runtime: go111
 env_variables:
   CHAME_ISSUER: https://chame.yosida95.com
   CHAME_SECRET: supersecretstring
 handlers:
   - url: .*
-    script: _go_app
+    script: auto
     secure: always
 ...
