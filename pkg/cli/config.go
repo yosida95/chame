@@ -1,4 +1,4 @@
-// Copyright 2017 Kohei YOSHIDA <https://yosida95.com/>.
+// Copyright 2019 Kohei YOSHIDA <https://yosida95.com/>.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,29 +15,27 @@
 package cli
 
 import (
-	"os"
-
-	"github.com/spf13/cobra"
+	"github.com/yosida95/chame/pkg/chame"
+	"github.com/yosida95/chame/pkg/memstore"
 )
 
-var rootCmd = &cobra.Command{
-	Use: "chame",
+type Config struct {
+	Issuer string
+	Secret string
+
+	Serve struct {
+		Address string
+	}
+	Encode struct {
+		URL string
+	}
+	Decode struct {
+		Token string
+	}
 }
 
-func init() {
-	rootCmd.AddCommand(
-		newEncodeCmd(),
-		newDecodeCmd(),
-		newServeCmd())
-}
+var cmdflg = Config{}
 
-func Main() int {
-	if len(os.Args) == 1 {
-		os.Args = append(os.Args, "help")
-	}
-	rootCmd.SetArgs(os.Args[1:])
-	if err := rootCmd.Execute(); err != nil {
-		return 1
-	}
-	return 0
+func FixedStoreFromConfig(c Config) chame.Store {
+	return memstore.Fixed(c.Issuer, []byte(c.Secret))
 }

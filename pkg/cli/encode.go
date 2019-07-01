@@ -21,7 +21,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
-	"github.com/yosida95/chame/pkg/memstore"
 )
 
 func newEncodeCmd() *cobra.Command {
@@ -31,17 +30,17 @@ func newEncodeCmd() *cobra.Command {
 	}
 
 	flags := cmd.PersistentFlags()
-	flags.StringVar(&flgFixedIssuer, "issuer", "https://chame.yosida95.com", "URL to identify token issuer")
-	flags.StringVar(&flgFixedSecret, "secret", "dummysecret", "HMAC shared secret to sign/verify tokens")
-	flags.StringVar(&flgUrlToEncode, "url", "https://example.com/", "URL to encode")
+	flags.StringVar(&cmdflg.Issuer, "issuer", "https://chame.yosida95.com", "URL to identify token issuer")
+	flags.StringVar(&cmdflg.Secret, "secret", "dummysecret", "HMAC shared secret to sign/verify tokens")
+	flags.StringVar(&cmdflg.Encode.URL, "url", "https://example.com/", "URL to encode")
 	return cmd
 }
 
 func runEncode(cmd *cobra.Command, args []string) {
-	store := memstore.Fixed(flgFixedIssuer, []byte(flgFixedSecret))
+	store := FixedStoreFromConfig(cmdflg)
 	token := &chame.Token{
-		Issuer:  flgFixedIssuer,
-		Subject: flgUrlToEncode,
+		Issuer:  cmdflg.Issuer,
+		Subject: cmdflg.Encode.URL,
 	}
 	signed, err := chame.EncodeToken(context.Background(), store, token, "")
 	if err != nil {

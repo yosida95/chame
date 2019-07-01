@@ -20,7 +20,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
-	"github.com/yosida95/chame/pkg/memstore"
 	"github.com/yosida95/chame/pkg/metadata"
 	"github.com/yosida95/chame/pkg/stdlogger"
 )
@@ -32,15 +31,15 @@ func newServeCmd() *cobra.Command {
 	}
 
 	flags := cmd.PersistentFlags()
-	flags.StringVar(&flgListenAddr, "listen", "0.0.0.0:8080", "address and port chame will accept requests")
-	flags.StringVar(&flgFixedIssuer, "issuer", "https://chame.yosida95.com", "URL to identify token issuer")
-	flags.StringVar(&flgFixedSecret, "secret", "dummysecret", "HMAC shared secret to sign/verify tokens")
+	flags.StringVar(&cmdflg.Serve.Address, "listen", "0.0.0.0:8080", "address and port chame will accept requests")
+	flags.StringVar(&cmdflg.Issuer, "issuer", "https://chame.yosida95.com", "URL to identify token issuer")
+	flags.StringVar(&cmdflg.Secret, "secret", "dummysecret", "HMAC shared secret to sign/verify tokens")
 	return cmd
 }
 
 func runServe(cmd *cobra.Command, args []string) {
 	cfg := &chame.Config{
-		Store: memstore.Fixed(flgFixedIssuer, []byte(flgFixedSecret)),
+		Store: FixedStoreFromConfig(cmdflg),
 	}
 	cfg.UseInterceptor(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -52,8 +51,8 @@ func runServe(cmd *cobra.Command, args []string) {
 	})
 	chame := chame.New(cfg)
 
-	log.Printf("chame: listen chame on %q", flgListenAddr)
-	if err := http.ListenAndServe(flgListenAddr, chame); err != nil {
+	log.Printf("chame: listen chame on %q", cmdflg.Serve.Address)
+	if err := http.ListenAndServe(cmdflg.Serve.Address, chame); err != nil {
 		log.Printf("chame: failed to accept requests: %v", err)
 	}
 }
