@@ -15,12 +15,12 @@
 package chame
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (string, error) {

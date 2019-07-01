@@ -15,7 +15,7 @@
 package chame
 
 import (
-	"golang.org/x/net/context"
+	"context"
 )
 
 type Logger interface {

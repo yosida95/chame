@@ -15,13 +15,13 @@
 package chame
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/yosida95/chame/pkg/metadata"
-	"golang.org/x/net/context"
 )
 
 func DecodeToken(ctx context.Context, store Store, tokenString string) (string, error) {

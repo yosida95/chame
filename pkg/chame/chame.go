@@ -15,12 +15,11 @@
 package chame
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 type Chame struct {

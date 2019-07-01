@@ -15,9 +15,8 @@
 package metadata
 
 import (
+	"context"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 type timeKey struct{}

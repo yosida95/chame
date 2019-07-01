@@ -15,13 +15,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/memstore"
-	"golang.org/x/net/context"
 )
 
 func newDecodeCmd() *cobra.Command {

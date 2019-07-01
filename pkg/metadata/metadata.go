@@ -15,7 +15,7 @@
 package metadata
 
 import (
-	"golang.org/x/net/context"
+	"context"
 )
 
 func New(parent context.Context) context.Context {
