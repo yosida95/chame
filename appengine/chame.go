@@ -22,20 +22,26 @@ import (
 	"os"
 
 	"github.com/yosida95/chame/pkg/chame"
-	"github.com/yosida95/chame/pkg/memstore"
+	"github.com/yosida95/chame/pkg/cli"
 	"github.com/yosida95/chame/pkg/metadata"
 	"github.com/yosida95/chame/pkg/stdlogger"
 )
 
+var cmdflg = cli.Config{
+	Issuer: os.Getenv("CHAME_ISSUER"),
+	Secret: os.Getenv("CHAME_SECRET"),
+	Serve: struct {
+		Address string
+	}{
+		Address: fmt.Sprintf(":%s", os.Getenv("PORT")),
+	},
+}
+
 func main() {
 	flag.Parse()
 
-	port := os.Getenv("PORT")
-	fixedIssuer := os.Getenv("CHAME_ISSUER")
-	fixedSecret := os.Getenv("CHAME_SECRET")
-
 	cfg := &chame.Config{
-		Store: memstore.Fixed(fixedIssuer, []byte(fixedSecret)),
+		Store: cli.FixedStoreFromConfig(cmdflg),
 	}
 	cfg.UseInterceptor(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -47,7 +53,7 @@ func main() {
 	})
 
 	chame := chame.New(cfg)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), chame); err != nil {
+	if err := http.ListenAndServe(cmdflg.Serve.Address, chame); err != nil {
 		log.Fatal(err)
 	}
 }
