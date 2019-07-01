@@ -17,8 +17,9 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
+	"os"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
 )
@@ -40,8 +41,9 @@ func runDecode(cmd *cobra.Command, args []string) {
 	store := FixedStoreFromConfig(cmdflg)
 	decoded, err := chame.DecodeToken(context.Background(), store, cmdflg.Decode.Token)
 	if err != nil {
-		log.Printf("failed to decode token: %v", err)
+		glog.Fatalf("failed to decode token: %v", err)
+		return
 	}
 
-	fmt.Printf("%s\n", decoded)
+	fmt.Fprintf(os.Stdout, "%s\n", decoded)
 }

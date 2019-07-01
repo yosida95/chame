@@ -15,11 +15,16 @@
 package main
 
 import (
+	"flag"
 	"os"
 
+	"github.com/golang/glog"
 	"github.com/yosida95/chame/pkg/cli"
 )
 
 func main() {
+	flag.CommandLine.Parse([]string{})
+	defer glog.Flush()
+
 	os.Exit(cli.Main())
 }

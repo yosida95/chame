@@ -17,8 +17,9 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
+	"os"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
 )
@@ -44,8 +45,9 @@ func runEncode(cmd *cobra.Command, args []string) {
 	}
 	signed, err := chame.EncodeToken(context.Background(), store, token, "")
 	if err != nil {
-		log.Printf("failed to encode URL: %v", err)
+		glog.Fatalf("failed to encode URL: %v", err)
+		return
 	}
 
-	fmt.Printf("%s\n", signed)
+	fmt.Fprintf(os.Stdout, "%s\n", signed)
 }

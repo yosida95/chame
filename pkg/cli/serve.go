@@ -15,13 +15,12 @@
 package cli
 
 import (
-	"log"
 	"net/http"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/metadata"
-	"github.com/yosida95/chame/pkg/stdlogger"
 )
 
 func newServeCmd() *cobra.Command {
@@ -44,15 +43,13 @@ func runServe(cmd *cobra.Command, args []string) {
 	cfg.UseInterceptor(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := metadata.New(req.Context())
-			ctx = chame.NewContextWithLogger(ctx, stdlogger.Logger)
-
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	})
 	chame := chame.New(cfg)
 
-	log.Printf("chame: listen chame on %q", cmdflg.Serve.Address)
+	glog.Infof("chame: listen on %q", cmdflg.Serve.Address)
 	if err := http.ListenAndServe(cmdflg.Serve.Address, chame); err != nil {
-		log.Printf("chame: failed to accept requests: %v", err)
+		glog.Fatalf("chame: failed to accept requests: %v", err)
 	}
 }

@@ -17,14 +17,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
+	"github.com/golang/glog"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/cli"
 	"github.com/yosida95/chame/pkg/metadata"
-	"github.com/yosida95/chame/pkg/stdlogger"
 )
 
 var cmdflg = cli.Config{
@@ -38,7 +37,8 @@ var cmdflg = cli.Config{
 }
 
 func main() {
-	flag.Parse()
+	flag.CommandLine.Parse([]string{"-logtostderr"})
+	defer glog.Flush()
 
 	cfg := &chame.Config{
 		Store: cli.FixedStoreFromConfig(cmdflg),
@@ -46,7 +46,6 @@ func main() {
 	cfg.UseInterceptor(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := metadata.New(req.Context())
-			ctx = chame.NewContextWithLogger(ctx, stdlogger.Logger)
 
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
@@ -54,6 +53,6 @@ func main() {
 
 	chame := chame.New(cfg)
 	if err := http.ListenAndServe(cmdflg.Serve.Address, chame); err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 }

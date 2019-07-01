@@ -15,6 +15,7 @@
 package cli
 
 import (
+	"flag"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,6 +26,9 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	pf := rootCmd.PersistentFlags()
+	pf.AddGoFlagSet(flag.CommandLine)
+
 	rootCmd.AddCommand(
 		newEncodeCmd(),
 		newDecodeCmd(),

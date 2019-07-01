@@ -20,6 +20,8 @@ import (
 	"io"
 	"mime"
 	"net/http"
+
+	"github.com/golang/glog"
 )
 
 type Chame struct {
@@ -66,19 +68,18 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 		return
 	}
 	ctx := userReq.Context()
-	log := LoggerFromContext(ctx)
 
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
 	url, err := DecodeToken(ctx, chame.store, signedURL)
 	if err != nil {
-		log.Errorf("chame: failed to decode signed token %q: %v", signedURL, err)
+		glog.Errorf("chame: failed to decode signed token %q: %v", signedURL, err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Errorf("chame: failed to constract a HTTP request to fetch origin: %v", err)
+		glog.Errorf("chame: failed to constract a HTTP request to fetch origin: %v", err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
@@ -87,7 +88,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	httpC := chame.httpCFactory(ctx)
 	resp, err := httpC.Do(req)
 	if err != nil {
-		log.Errorf("chame: failed to fetch the original: %v", err)
+		glog.Errorf("chame: failed to fetch the original: %v", err)
 		httpError(w, http.StatusInternalServerError)
 		return
 	}
@@ -97,7 +98,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	case http.StatusOK:
 		ctype, _, err := mime.ParseMediaType(resp.Header.Get(headerKeyContentType))
 		if err != nil || !IsAcceptableContentType(ctype) {
-			log.Infof("chame: unacceptable Content-Type")
+			glog.Infof("chame: unacceptable Content-Type")
 			httpError(w, http.StatusBadRequest)
 			return
 		}
@@ -105,7 +106,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 		CopyResponseHeaders(w, resp)
 		w.WriteHeader(code)
 		if _, err := io.Copy(w, resp.Body); err != nil {
-			log.Errorf("chame: failed to forward origin response to the client: %v", err)
+			glog.Errorf("chame: failed to forward origin response to the client: %v", err)
 			return
 		}
 	case http.StatusNotModified:
