@@ -77,7 +77,7 @@ func CopyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 	copyHeadersOnlyIn(w.Header(), resp.Header, passThroughRespHeaders)
 }
 
-// Values below ware taken from
+// Values below were taken from
 // https://github.com/atmos/camo/blob/bd731cff64fd61a7ee4ea7dd6e96b8e0b69c3da0/mime-types.json
 var acceptableContentTypes = []string{
 	"image/bmp",
