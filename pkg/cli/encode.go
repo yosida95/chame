@@ -45,7 +45,7 @@ func runEncode(cmd *cobra.Command, args []string) {
 	}
 	signed, err := chame.EncodeToken(context.Background(), store, token, "")
 	if err != nil {
-		glog.Fatalf("failed to encode URL: %v", err)
+		glog.Exitf("failed to encode URL: %v", err)
 		return
 	}
 

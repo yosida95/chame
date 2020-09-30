@@ -41,7 +41,7 @@ func runDecode(cmd *cobra.Command, args []string) {
 	store := FixedStoreFromConfig(cmdflg)
 	decoded, err := chame.DecodeToken(context.Background(), store, cmdflg.Decode.Token)
 	if err != nil {
-		glog.Fatalf("failed to decode token: %v", err)
+		glog.Exitf("failed to decode token: %v", err)
 		return
 	}
 

@@ -50,6 +50,6 @@ func runServe(cmd *cobra.Command, args []string) {
 
 	glog.Infof("chame: listen on %q", cmdflg.Serve.Address)
 	if err := http.ListenAndServe(cmdflg.Serve.Address, chame); err != nil {
-		glog.Fatalf("chame: failed to accept requests: %v", err)
+		glog.Exitf("chame: failed to accept requests: %v", err)
 	}
 }
