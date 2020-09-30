@@ -24,7 +24,7 @@ import (
 )
 
 func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (string, error) {
-	key, err := store.GetVerifyingKey(token.Issuer, kid)
+	key, err := store.GetSigningKeyKey(token.Issuer, kid)
 	if err != nil {
 		return "", errors.Wrap(err, "chame: failed to retrieve a signing key")
 	}
