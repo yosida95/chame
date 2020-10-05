@@ -16,7 +16,6 @@ package chame
 
 import (
 	"net/http"
-	"net/textproto"
 	"strings"
 	"time"
 )
@@ -27,32 +26,38 @@ var DefaultHTTPClient = &http.Client{
 }
 
 const (
-	headerKeyAllow       = "Allow"
-	headerKeyContentType = "Content-Type"
-	headerKeyServer      = "Server"
+	headerKeyAllow         = "Allow"
+	headerKeyContentType   = "Content-Type"
+	headerKeyContentLength = "Content-Length"
+	headerKeyServer        = "Server"
 )
 
 func canonicalizedMIMEHeaderKeys(v []string) []string {
 	for i := range v {
-		v[i] = textproto.CanonicalMIMEHeaderKey(v[i])
+		v[i] = http.CanonicalHeaderKey(v[i])
 	}
 	return v
 }
 
-func copyHeadersOnlyIn(dest http.Header, src http.Header, whitelist []string) {
-	for k := range src {
-		found := false
-		for i := range whitelist {
-			if textproto.CanonicalMIMEHeaderKey(k) == whitelist[i] {
-				found = true
-				break
-			}
+func copyHeader(dest http.Header, src http.Header) {
+	for key, srcv := range src {
+		destv := dest[key]
+		if newSize := len(destv) + len(srcv); newSize > cap(destv) {
+			dest[key] = append(make([]string, 0, newSize), destv...)
 		}
-		if found {
-			vv := src[k]
-			for i := range vv {
-				dest.Add(k, vv[i])
+		dest[key] = append(dest[key], srcv...)
+	}
+}
+
+func copyHeadersOnlyIn(dest http.Header, src http.Header, allowlist []string) {
+	for _, key := range allowlist {
+		srcv := src[key]
+		if len(srcv) > 0 {
+			destv := dest[key]
+			if newSize := len(destv) + len(srcv); newSize > cap(destv) {
+				dest[key] = append(make([]string, 0, newSize), destv...)
 			}
+			dest[key] = append(dest[key], srcv...)
 		}
 	}
 }

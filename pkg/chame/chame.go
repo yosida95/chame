@@ -15,29 +15,27 @@
 package chame
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"mime"
 	"net/http"
+	"net/url"
+	"sync"
 
 	"github.com/golang/glog"
 )
 
 type Chame struct {
-	store        Store
-	httpCFactory func(context.Context) *http.Client
+	store Store
+	proxy Proxy
 }
 
 func New(cfg *Config) http.Handler {
-	chame := &Chame{
-		store:        cfg.Store,
+	proxy := &HTTPProxy{
 		httpCFactory: cfg.NewHTTPClient,
 	}
-	if chame.httpCFactory == nil {
-		chame.httpCFactory = func(context.Context) *http.Client {
-			return DefaultHTTPClient
-		}
+	chame := &Chame{
+		store: cfg.Store,
+		proxy: proxy,
 	}
 
 	mux := http.NewServeMux()
@@ -67,56 +65,75 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	if !httpErrorIfMethodNotAllowed(w, userReq, http.MethodGet) {
 		return
 	}
-	ctx := userReq.Context()
+	ctx, cancel := newProxyContext(userReq.Context())
+	defer cancel()
 
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
-	url, err := DecodeToken(ctx, chame.store, signedURL)
+	decoded, err := DecodeToken(ctx, chame.store, signedURL)
 	if err != nil {
 		glog.Errorf("chame: failed to decode signed token %q: %v", signedURL, err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	reqUrl, err := url.Parse(decoded)
 	if err != nil {
-		glog.Errorf("chame: failed to constract a HTTP request to fetch origin: %v", err)
+		glog.Errorf("chame: malformed URL: %v", err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
-	CopyRequestHeaders(req, userReq)
 
-	httpC := chame.httpCFactory(ctx)
-	resp, err := httpC.Do(req)
-	if err != nil {
-		glog.Errorf("chame: failed to fetch the original: %v", err)
-		httpError(w, http.StatusInternalServerError)
-		return
+	filtered := make(http.Header)
+	copyHeadersOnlyIn(filtered, userReq.Header, passThroughReqHeaders)
+
+	w = newResponseWriter(w)
+	chame.proxy.Do(w, &ProxyRequest{
+		Context: ctx,
+		URL:     reqUrl,
+		Header:  filtered,
+	})
+}
+
+type responsewriter struct {
+	http.ResponseWriter
+	once    sync.Once
+	headers http.Header
+	discard bool
+}
+
+var _ http.ResponseWriter = (*responsewriter)(nil)
+
+func newResponseWriter(w http.ResponseWriter) *responsewriter {
+	return &responsewriter{
+		ResponseWriter: w,
+		headers:        make(http.Header),
 	}
-	defer resp.Body.Close()
+}
 
-	switch code := resp.StatusCode; code {
-	case http.StatusOK:
-		ctype, _, err := mime.ParseMediaType(resp.Header.Get(headerKeyContentType))
+func (w *responsewriter) Header() http.Header { return w.headers }
+
+func (w *responsewriter) WriteHeader(code int) {
+	w.once.Do(func() {
+		dest := w.ResponseWriter.Header()
+		src := w.headers
+		copyHeadersOnlyIn(dest, src, passThroughRespHeaders)
+
+		ctype, _, err := mime.ParseMediaType(dest.Get(headerKeyContentType))
 		if err != nil || !IsAcceptableContentType(ctype) {
 			glog.Infof("chame: unacceptable Content-Type")
-			httpError(w, http.StatusBadRequest)
+			dest.Del(headerKeyContentType)
+			dest.Del(headerKeyContentLength)
+			httpError(w.ResponseWriter, http.StatusBadRequest)
+			w.discard = true
 			return
 		}
+		w.ResponseWriter.WriteHeader(code)
+	})
+}
 
-		CopyResponseHeaders(w, resp)
-		w.WriteHeader(code)
-		if _, err := io.Copy(w, resp.Body); err != nil {
-			glog.Errorf("chame: failed to forward origin response to the client: %v", err)
-			return
-		}
-	case http.StatusNotModified:
-		CopyResponseHeaders(w, resp)
-		w.WriteHeader(code)
-	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther,
-		http.StatusTemporaryRedirect, 308: // http.StatusPermanentRedirect
-		// max redirects exceeded
-		httpError(w, http.StatusBadGateway)
-	default:
-		httpError(w, code)
+func (w *responsewriter) Write(p []byte) (int, error) {
+	w.WriteHeader(http.StatusOK)
+	if w.discard {
+		return len(p), nil
 	}
+	return w.ResponseWriter.Write(p)
 }
