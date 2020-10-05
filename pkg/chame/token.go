@@ -19,11 +19,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pkg/errors"
 	"github.com/yosida95/chame/pkg/metadata"
 )
 
@@ -40,11 +40,11 @@ func (tok *Token) Valid() error {
 	const leeway = 1 * time.Minute
 
 	if nbf := tok.NotBefore.Time(); !nbf.IsZero() && nbf.Add(-leeway).After(tok.now) {
-		return errors.New("chame: expired token")
+		return fmt.Errorf("chame: expired token")
 	}
 
 	if exp := tok.Expiry.Time(); !exp.IsZero() && !exp.Add(leeway).After(tok.now) {
-		return errors.New("chame: expired token")
+		return fmt.Errorf("chame: expired token")
 	}
 
 	return nil
@@ -80,13 +80,13 @@ func (epoch *JWTEpoch) UnmarshalJSON(data []byte) error {
 func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (string, error) {
 	key, err := store.GetSigningKey(token.Issuer, kid)
 	if err != nil {
-		return "", errors.Wrap(err, "chame: failed to retrieve a signing key")
+		return "", fmt.Errorf("chame: failed to retrieve a signing key: %w", err)
 	}
 
 	var mech jwt.SigningMethod
 	switch key.(type) {
 	default:
-		return "", errors.New("chame: unsupported key algorithm")
+		return "", fmt.Errorf("chame: unsupported key algorithm")
 	case []byte:
 		mech = jwt.SigningMethodHS256
 	case *rsa.PrivateKey:
@@ -101,7 +101,7 @@ func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (st
 	}
 	signed, err := jwtobj.SignedString(key)
 	if err != nil {
-		return "", errors.Wrap(err, "chame: failed to sign a token")
+		return "", fmt.Errorf("chame: failed to sign a token: %w", err)
 	}
 	return signed, nil
 }
@@ -113,32 +113,32 @@ func DecodeToken(ctx context.Context, store Store, tokenString string) (string, 
 		kid, _ := token.Header["kid"].(string)
 		key, err := store.GetVerifyingKey(claim.Issuer, kid)
 		if err != nil {
-			return nil, errors.Wrap(err, "chame: failed to retrieve keys to verify signed token")
+			return nil, fmt.Errorf("chame: failed to retrieve keys to verify signed token: %w", err)
 		}
 		switch token.Method.(type) {
 		case *jwt.SigningMethodHMAC:
 			switch key := key.(type) {
 			default:
-				return nil, errors.Wrap(err, "chame: incompatible key algorithms")
+				return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
 			case []byte:
 				return key, nil
 			}
 		case *jwt.SigningMethodRSA:
 			switch key := key.(type) {
 			default:
-				return nil, errors.Wrap(err, "chame: incompatible key algorithms")
+				return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
 			case *rsa.PublicKey:
 				return key, nil
 			}
 		case *jwt.SigningMethodECDSA:
 			switch key := key.(type) {
 			default:
-				return nil, errors.Wrap(err, "chame: incompatible key algorithms")
+				return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
 			case *ecdsa.PublicKey:
 				return key, nil
 			}
 		default:
-			return nil, errors.Wrap(err, "chame: incompatible key algorithms")
+			return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
 		}
 	})
 	if err != nil {
@@ -147,7 +147,7 @@ func DecodeToken(ctx context.Context, store Store, tokenString string) (string, 
 		}); ok {
 			return "", err
 		}
-		return "", errors.Wrap(err, "chame: failed to decode signed token")
+		return "", fmt.Errorf("chame: failed to decode signed token: %w", err)
 	}
 	claims := token.Claims.(*Token)
 	return claims.Subject, nil
