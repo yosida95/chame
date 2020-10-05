@@ -68,7 +68,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set(headerKeyContentType, "text/plain;charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hello, this is chame!\nVisit https://github.com/yosida95/chame.")
+	fmt.Fprintf(w, "Hello, this is chame!\nVisit https://github.com/yosida95/chame.\n")
 }
 
 const proxyPrefix = "/i/"
