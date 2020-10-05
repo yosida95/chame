@@ -69,6 +69,8 @@ var passThroughReqHeaders = canonicalizedMIMEHeaderKeys([]string{
 	"If-None-Match",
 })
 
+// Deprecated. This method is mainly for internal use and is no longer used
+// internally.
 func CopyRequestHeaders(dest *http.Request, src *http.Request) {
 	copyHeadersOnlyIn(dest.Header, src.Header, passThroughReqHeaders)
 }
@@ -84,6 +86,8 @@ var passThroughRespHeaders = canonicalizedMIMEHeaderKeys([]string{
 	"Transfer-Encoding",
 })
 
+// Deprecated. This method is mainly for internal use and is no longer used
+// internally.
 func CopyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 	copyHeadersOnlyIn(w.Header(), resp.Header, passThroughRespHeaders)
 }
@@ -136,6 +140,8 @@ var defaultProxyContentType = []string{
 	"image/x-xwindowdump",
 }
 
+// Deprecated. This method is mainly for internal use and is no longer used
+// internally.
 func IsAcceptableContentType(ctype string) bool {
 	// As https://tools.ietf.org/html/rfc2045#section-5.1 said,
 	// it is case-insensitive.
