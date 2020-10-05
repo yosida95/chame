@@ -19,6 +19,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/golang/glog"
@@ -31,13 +32,23 @@ type Chame struct {
 }
 
 func New(cfg *Config) http.Handler {
-	proxy := &HTTPProxy{
-		httpCFactory: cfg.NewHTTPClient,
-	}
 	chame := &Chame{
-		store:  cfg.Store,
-		proxy:  proxy,
-		ctypes: defaultProxyContentType,
+		store: cfg.Store,
+		proxy: cfg.Proxy,
+	}
+	if chame.proxy == nil {
+		chame.proxy = &HTTPProxy{
+			httpCFactory: cfg.NewHTTPClient,
+		}
+	}
+
+	ctypes := cfg.ProxyContentType
+	if ctypes == nil {
+		ctypes = defaultProxyContentType
+	}
+	chame.ctypes = make([]string, len(ctypes))
+	for i, ctype := range ctypes {
+		chame.ctypes[i] = strings.ToLower(ctype)
 	}
 
 	mux := http.NewServeMux()

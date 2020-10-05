@@ -20,7 +20,12 @@ import (
 )
 
 type Config struct {
-	Store         Store
+	Store Store
+	Proxy Proxy
+	// List of Content-Type to be proxied. If nil, DefaultProxyContent will be
+	// used.
+	ProxyContentType []string
+	// Deprecated. Use HTTPProxy with HTTPClient set on Proxy field above.
 	NewHTTPClient func(context.Context) *http.Client
 
 	iceptors []func(http.Handler) http.Handler
