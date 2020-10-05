@@ -25,8 +25,9 @@ import (
 )
 
 type Chame struct {
-	store Store
-	proxy Proxy
+	store  Store
+	proxy  Proxy
+	ctypes []string
 }
 
 func New(cfg *Config) http.Handler {
@@ -34,8 +35,9 @@ func New(cfg *Config) http.Handler {
 		httpCFactory: cfg.NewHTTPClient,
 	}
 	chame := &Chame{
-		store: cfg.Store,
-		proxy: proxy,
+		store:  cfg.Store,
+		proxy:  proxy,
+		ctypes: defaultProxyContentType,
 	}
 
 	mux := http.NewServeMux()
@@ -85,7 +87,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	filtered := make(http.Header)
 	copyHeadersOnlyIn(filtered, userReq.Header, passThroughReqHeaders)
 
-	w = newResponseWriter(w)
+	w = chame.newResponseWriter(w)
 	chame.proxy.Do(w, &ProxyRequest{
 		Context: ctx,
 		URL:     reqUrl,
@@ -93,19 +95,35 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	})
 }
 
+func (chame *Chame) isAcceptableContentType(ctype string) bool {
+	// As https://tools.ietf.org/html/rfc2045#section-5.1 said,
+	// it is case-insensitive.
+	ctype = strings.ToLower(ctype)
+	for _, allowed := range chame.ctypes {
+		if ctype == allowed {
+			return true
+		}
+	}
+	return false
+}
+
 type responsewriter struct {
 	http.ResponseWriter
 	once    sync.Once
 	headers http.Header
 	discard bool
+
+	isAcceptableContentType func(string) bool
 }
 
 var _ http.ResponseWriter = (*responsewriter)(nil)
 
-func newResponseWriter(w http.ResponseWriter) *responsewriter {
+func (chame *Chame) newResponseWriter(w http.ResponseWriter) *responsewriter {
 	return &responsewriter{
 		ResponseWriter: w,
 		headers:        make(http.Header),
+
+		isAcceptableContentType: chame.isAcceptableContentType,
 	}
 }
 
@@ -118,7 +136,7 @@ func (w *responsewriter) WriteHeader(code int) {
 		copyHeadersOnlyIn(dest, src, passThroughRespHeaders)
 
 		ctype, _, err := mime.ParseMediaType(dest.Get(headerKeyContentType))
-		if err != nil || !IsAcceptableContentType(ctype) {
+		if err != nil || !w.isAcceptableContentType(ctype) {
 			glog.Infof("chame: unacceptable Content-Type")
 			dest.Del(headerKeyContentType)
 			dest.Del(headerKeyContentLength)

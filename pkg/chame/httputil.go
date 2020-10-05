@@ -90,7 +90,7 @@ func CopyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 
 // Values below were taken from
 // https://github.com/atmos/camo/blob/bd731cff64fd61a7ee4ea7dd6e96b8e0b69c3da0/mime-types.json
-var acceptableContentTypes = []string{
+var defaultProxyContentType = []string{
 	"image/bmp",
 	"image/cgm",
 	"image/g3fax",
@@ -140,8 +140,8 @@ func IsAcceptableContentType(ctype string) bool {
 	// As https://tools.ietf.org/html/rfc2045#section-5.1 said,
 	// it is case-insensitive.
 	ctype = strings.ToLower(ctype)
-	for i := range acceptableContentTypes {
-		if ctype == acceptableContentTypes[i] {
+	for i := range defaultProxyContentType {
+		if ctype == defaultProxyContentType[i] {
 			return true
 		}
 	}
