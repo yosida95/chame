@@ -18,7 +18,13 @@ import (
 	"net/http"
 	"net/textproto"
 	"strings"
+	"time"
 )
+
+var DefaultHTTPClient = &http.Client{
+	Transport: http.DefaultTransport,
+	Timeout:   30 * time.Second,
+}
 
 const (
 	headerKeyAllow       = "Allow"
