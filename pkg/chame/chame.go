@@ -146,15 +146,28 @@ func (w *responsewriter) WriteHeader(code int) {
 		src := w.headers
 		copyHeadersOnlyIn(dest, src, passThroughRespHeaders)
 
-		ctype, _, err := mime.ParseMediaType(dest.Get(headerKeyContentType))
-		if err != nil || !w.isAcceptableContentType(ctype) {
-			glog.Infof("chame: unacceptable Content-Type")
-			dest.Del(headerKeyContentType)
-			dest.Del(headerKeyContentLength)
-			httpError(w.ResponseWriter, http.StatusBadRequest)
+		if ctype := dest.Get(headerKeyContentType); ctype != "" {
+			ctype, _, err := mime.ParseMediaType(ctype)
+			if err != nil || !w.isAcceptableContentType(ctype) {
+				// special handling for error responses
+				if !(code >= http.StatusBadRequest && ctype == "text/plain") {
+					glog.Infof("chame: unacceptable Content-Type")
+					dest.Del(headerKeyContentLength)
+					httpError(w.ResponseWriter, http.StatusBadRequest)
+					w.discard = true
+					return
+				}
+			}
+		} else {
 			w.discard = true
-			return
+			if code != http.StatusNotModified {
+				glog.Infof("chame: Content-Type not present")
+				dest.Del(headerKeyContentLength)
+				httpError(w.ResponseWriter, http.StatusBadRequest)
+				return
+			}
 		}
+
 		w.ResponseWriter.WriteHeader(code)
 	})
 }
