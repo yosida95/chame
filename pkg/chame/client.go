@@ -55,8 +55,8 @@ func (cli *Client) Sign(ctx context.Context, url string, opts SignOption) (strin
 	}
 
 	var nbf JWTEpoch
-	if !opts.Expiry.IsZero() {
-		nbf = JWTEpoch(opts.Expiry.Unix())
+	if !opts.NotBefore.IsZero() {
+		nbf = JWTEpoch(opts.NotBefore.Unix())
 	}
 
 	signed, err := EncodeToken(ctx, cli.store, &Token{
