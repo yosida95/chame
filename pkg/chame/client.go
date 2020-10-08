@@ -49,14 +49,17 @@ func NewClient(baseUrl string, issuer string, store Store) (*Client, error) {
 }
 
 func (cli *Client) Sign(ctx context.Context, url string, opts SignOption) (string, error) {
-	var exp JWTEpoch
-	if !opts.Expiry.IsZero() {
-		exp = JWTEpoch(opts.Expiry.Unix())
-	}
-
 	var nbf JWTEpoch
 	if !opts.NotBefore.IsZero() {
 		nbf = JWTEpoch(opts.NotBefore.Unix())
+	}
+
+	var exp JWTEpoch
+	if opts.NotAfter.IsZero() && !opts.Expiry.IsZero() {
+		opts.NotAfter = opts.Expiry
+	}
+	if !opts.NotAfter.IsZero() {
+		exp = JWTEpoch(opts.NotAfter.Unix())
 	}
 
 	signed, err := EncodeToken(ctx, cli.store, &Token{
@@ -75,5 +78,8 @@ func (cli *Client) Sign(ctx context.Context, url string, opts SignOption) (strin
 type SignOption struct {
 	JwtKid    string
 	NotBefore time.Time
-	Expiry    time.Time
+	NotAfter  time.Time
+
+	// Deprecated: use NotAfter
+	Expiry time.Time
 }

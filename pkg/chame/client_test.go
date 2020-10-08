@@ -32,7 +32,7 @@ func TestClientSign(t *testing.T) {
 		signed, err := client.Sign(context.Background(), c.URL, SignOption{
 			JwtKid:    c.Kid,
 			NotBefore: c.NotBefore.Time(),
-			Expiry:    c.Expiry.Time(),
+			NotAfter:  c.Expiry.Time(),
 		})
 		if err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)
