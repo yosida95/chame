@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	"github.com/yosida95/chame/pkg/metadata"
 )
 
 type Chame struct {
@@ -78,8 +79,10 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	if !httpErrorIfMethodNotAllowed(w, userReq, http.MethodGet) {
 		return
 	}
-	ctx, cancel := newProxyContext(userReq.Context())
-	defer cancel()
+	ctx := userReq.Context()
+	if time := metadata.Time(ctx); time.IsZero() {
+		ctx = metadata.WithTime(ctx)
+	}
 
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
 	decoded, err := DecodeToken(ctx, chame.store, signedURL)

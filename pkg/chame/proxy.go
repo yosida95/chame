@@ -33,25 +33,6 @@ type ProxyRequest struct {
 	Header  http.Header
 }
 
-func newProxyContext(userCtx context.Context) (context.Context, context.CancelFunc) {
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-	if dl, ok := userCtx.Deadline(); ok {
-		ctx, cancel = context.WithDeadline(context.Background(), dl)
-	} else {
-		ctx, cancel = context.WithCancel(context.Background())
-	}
-
-	go func(done <-chan struct{}) {
-		<-done
-		cancel()
-	}(userCtx.Done())
-
-	return ctx, cancel
-}
-
 type HTTPProxy struct {
 	HTTPClient *http.Client
 	// Deprecated.
