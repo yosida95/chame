@@ -106,40 +106,26 @@ func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (st
 	return signed, nil
 }
 
+var parser = &jwt.Parser{
+	ValidMethods: []string{
+		jwt.SigningMethodHS256.Name,
+		jwt.SigningMethodHS384.Name,
+		jwt.SigningMethodHS512.Name,
+		jwt.SigningMethodRS256.Name,
+		jwt.SigningMethodES384.Name,
+		jwt.SigningMethodRS512.Name,
+		jwt.SigningMethodES256.Name,
+		jwt.SigningMethodES384.Name,
+		jwt.SigningMethodES512.Name,
+	},
+}
+
 func DecodeToken(ctx context.Context, store Store, tokenString string) (string, error) {
 	now := metadata.Time(ctx)
-	token, err := jwt.ParseWithClaims(tokenString, &Token{now: now}, func(token *jwt.Token) (interface{}, error) {
+	token, err := parser.ParseWithClaims(tokenString, &Token{now: now}, func(token *jwt.Token) (interface{}, error) {
 		claim := token.Claims.(*Token)
 		kid, _ := token.Header["kid"].(string)
-		key, err := store.GetVerifyingKey(claim.Issuer, kid)
-		if err != nil {
-			return nil, fmt.Errorf("chame: failed to retrieve keys to verify signed token: %w", err)
-		}
-		switch token.Method.(type) {
-		case *jwt.SigningMethodHMAC:
-			switch key := key.(type) {
-			default:
-				return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
-			case []byte:
-				return key, nil
-			}
-		case *jwt.SigningMethodRSA:
-			switch key := key.(type) {
-			default:
-				return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
-			case *rsa.PublicKey:
-				return key, nil
-			}
-		case *jwt.SigningMethodECDSA:
-			switch key := key.(type) {
-			default:
-				return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
-			case *ecdsa.PublicKey:
-				return key, nil
-			}
-		default:
-			return nil, fmt.Errorf("chame: incompatible key algorithms: %w", err)
-		}
+		return store.GetVerifyingKey(claim.Issuer, kid)
 	})
 	if err != nil {
 		if _, ok := err.(interface {
