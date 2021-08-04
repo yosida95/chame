@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/yosida95/chame/pkg/metadata"
 )
 
