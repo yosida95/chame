@@ -17,6 +17,7 @@ package chame
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
@@ -84,7 +85,7 @@ func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (st
 	}
 
 	var mech jwt.SigningMethod
-	switch key.(type) {
+	switch key := key.(type) {
 	default:
 		return "", fmt.Errorf("chame: unsupported key algorithm")
 	case []byte:
@@ -92,7 +93,16 @@ func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (st
 	case *rsa.PrivateKey:
 		mech = jwt.SigningMethodRS256
 	case *ecdsa.PrivateKey:
-		mech = jwt.SigningMethodES256
+		switch key.Curve {
+		case elliptic.P256():
+			mech = jwt.SigningMethodES256
+		case elliptic.P384():
+			mech = jwt.SigningMethodES384
+		case elliptic.P521():
+			mech = jwt.SigningMethodES512
+		default:
+			return "", fmt.Errorf("chame: unsupported elliptic curve")
+		}
 	}
 
 	jwtobj := jwt.NewWithClaims(mech, token)
