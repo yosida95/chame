@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/yosida95/chame/pkg/metadata"
 )
 
