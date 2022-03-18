@@ -1,5 +1,5 @@
 ---
-runtime: go114
+runtime: go116
 env_variables:
   CHAME_ISSUER: https://chame.yosida95.com
   CHAME_SECRET: supersecretstring
@@ -7,4 +7,3 @@ handlers:
   - url: .*
     script: auto
     secure: always
-...
