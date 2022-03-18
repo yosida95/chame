@@ -17,6 +17,8 @@ package chame
 import (
 	"context"
 	"testing"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -27,8 +29,8 @@ const (
 var testEncodeTokenCases = []struct {
 	Kid       string
 	URL       string
-	NotBefore JWTEpoch
-	Expiry    JWTEpoch
+	NotBefore *jwt.NumericDate
+	NotAfter  *jwt.NumericDate
 
 	Expected string
 }{
@@ -45,7 +47,7 @@ func TestEncodeToken(t *testing.T) {
 			Issuer:    defaultIss,
 			Subject:   c.URL,
 			NotBefore: c.NotBefore,
-			Expiry:    c.Expiry,
+			ExpiresAt: c.NotAfter,
 		}, c.Kid)
 		if err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)

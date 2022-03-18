@@ -31,8 +31,8 @@ func TestClientSign(t *testing.T) {
 
 		signed, err := client.Sign(context.Background(), c.URL, SignOption{
 			JwtKid:    c.Kid,
-			NotBefore: c.NotBefore.Time(),
-			NotAfter:  c.Expiry.Time(),
+			NotBefore: fromNumericDate(c.NotBefore),
+			NotAfter:  fromNumericDate(c.NotAfter),
 		})
 		if err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)

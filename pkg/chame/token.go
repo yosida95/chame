@@ -19,63 +19,34 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
-	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/yosida95/chame/pkg/metadata"
 )
 
-type Token struct {
-	now time.Time
+type Token = jwt.RegisteredClaims
 
-	Issuer    string   `json:"iss"`
-	Subject   string   `json:"sub"`
-	NotBefore JWTEpoch `json:"nbf,omitempty"`
-	Expiry    JWTEpoch `json:"exp,omitempty"`
+func JWTEpoch(unix int64) *jwt.NumericDate {
+	if unix == 0 {
+		return nil
+	}
+	return jwt.NewNumericDate(time.Unix(unix, 0))
 }
 
-func (tok *Token) Valid() error {
-	const leeway = 1 * time.Minute
-
-	if nbf := tok.NotBefore.Time(); !nbf.IsZero() && nbf.Add(-leeway).After(tok.now) {
-		return fmt.Errorf("chame: expired token")
-	}
-
-	if exp := tok.Expiry.Time(); !exp.IsZero() && !exp.Add(leeway).After(tok.now) {
-		return fmt.Errorf("chame: expired token")
-	}
-
-	return nil
-}
-
-type JWTEpoch int64
-
-func (epoch JWTEpoch) Time() time.Time {
-	if epoch == 0 {
+func fromNumericDate(t *jwt.NumericDate) time.Time {
+	if t == nil {
 		return time.Time{}
 	}
-	return time.Unix(int64(epoch), 0)
+	return t.Time
 }
 
-var _ json.Marshaler = (*JWTEpoch)(nil)
-
-func (epoch JWTEpoch) MarshalJSON() ([]byte, error) {
-	v := strconv.FormatInt(int64(epoch), 10)
-	return []byte(v), nil
-}
-
-var _ json.Unmarshaler = (*JWTEpoch)(nil)
-
-func (epoch *JWTEpoch) UnmarshalJSON(data []byte) error {
-	i, err := strconv.ParseInt(string(data), 10, 64)
-	if err != nil {
-		return err
+func toNumericDate(t time.Time) *jwt.NumericDate {
+	if t.IsZero() {
+		return nil
 	}
-	*epoch = JWTEpoch(i)
-	return nil
+	return jwt.NewNumericDate(t)
 }
 
 func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (string, error) {
@@ -116,23 +87,28 @@ func EncodeToken(ctx context.Context, store Store, token *Token, kid string) (st
 	return signed, nil
 }
 
-var parser = &jwt.Parser{
-	ValidMethods: []string{
-		jwt.SigningMethodHS256.Name,
-		jwt.SigningMethodHS384.Name,
-		jwt.SigningMethodHS512.Name,
-		jwt.SigningMethodRS256.Name,
-		jwt.SigningMethodES384.Name,
-		jwt.SigningMethodRS512.Name,
-		jwt.SigningMethodES256.Name,
-		jwt.SigningMethodES384.Name,
-		jwt.SigningMethodES512.Name,
+var parserPool = sync.Pool{
+	New: func() interface{} {
+		return jwt.NewParser(
+			jwt.WithValidMethods([]string{
+				jwt.SigningMethodHS256.Name,
+				jwt.SigningMethodHS384.Name,
+				jwt.SigningMethodHS512.Name,
+				jwt.SigningMethodRS256.Name,
+				jwt.SigningMethodES384.Name,
+				jwt.SigningMethodRS512.Name,
+				jwt.SigningMethodES256.Name,
+				jwt.SigningMethodES384.Name,
+				jwt.SigningMethodES512.Name,
+			}),
+			jwt.WithLeeway(1*time.Minute))
 	},
 }
 
 func DecodeToken(ctx context.Context, store Store, tokenString string) (string, error) {
-	now := metadata.Time(ctx)
-	token, err := parser.ParseWithClaims(tokenString, &Token{now: now}, func(token *jwt.Token) (interface{}, error) {
+	parser := parserPool.Get().(*jwt.Parser)
+	defer parserPool.Put(parser)
+	token, err := parser.ParseWithClaims(tokenString, &Token{}, func(token *jwt.Token) (interface{}, error) {
 		claim := token.Claims.(*Token)
 		kid, _ := token.Header["kid"].(string)
 		return store.GetVerifyingKey(claim.Issuer, kid)
