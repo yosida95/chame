@@ -101,17 +101,20 @@ var parserPool = sync.Pool{
 				jwt.SigningMethodES384.Name,
 				jwt.SigningMethodES512.Name,
 			}),
-			jwt.WithLeeway(1*time.Minute))
+			jwt.WithoutClaimsValidation())
 	},
 }
 
 func DecodeToken(ctx context.Context, store Store, tokenString string) (string, error) {
+	const (
+		leeway = 1 * time.Minute
+	)
 	parser := parserPool.Get().(*jwt.Parser)
 	defer parserPool.Put(parser)
-	token, err := parser.ParseWithClaims(tokenString, &Token{}, func(token *jwt.Token) (interface{}, error) {
-		claim := token.Claims.(*Token)
+	claims := Token{}
+	_, err := parser.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		kid, _ := token.Header["kid"].(string)
-		return store.GetVerifyingKey(claim.Issuer, kid)
+		return store.GetVerifyingKey(claims.Issuer, kid)
 	})
 	if err != nil {
 		if _, ok := err.(interface {
@@ -121,6 +124,14 @@ func DecodeToken(ctx context.Context, store Store, tokenString string) (string, 
 		}
 		return "", fmt.Errorf("chame: failed to decode signed token: %w", err)
 	}
-	claims := token.Claims.(*Token)
+
+	now := time.Now()
+	nowMin, nowMax := now.Add(-leeway), now.Add(leeway)
+	if !claims.VerifyNotBefore(nowMax, false) ||
+		!claims.VerifyIssuedAt(nowMax, false) ||
+		!claims.VerifyExpiresAt(nowMin, false) {
+		return "", fmt.Errorf("chame: failed to decode signed token: %w", err)
+	}
+
 	return claims.Subject, nil
 }
