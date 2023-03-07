@@ -1,7 +1,7 @@
 ---
 version: 2.1
 orbs:
-  go: circleci/go@1.7.2
+  go: circleci/go@1.7
 jobs:
   build:
     docker:
@@ -49,6 +49,5 @@ workflows:
           matrix:
             parameters:
               tag:
-                - "1.16"
-                - "1.17"
-                - "1.18"
+                - "1.19"
+                - "1.20"
