@@ -26,10 +26,7 @@ var DefaultHTTPClient = &http.Client{
 }
 
 const (
-	headerKeyAllow         = "Allow"
-	headerKeyContentType   = "Content-Type"
-	headerKeyContentLength = "Content-Length"
-	headerKeyServer        = "Server"
+	headerKeyContentType = "Content-Type"
 )
 
 func canonicalizedMIMEHeaderKeys(v []string) []string {
@@ -41,10 +38,6 @@ func canonicalizedMIMEHeaderKeys(v []string) []string {
 
 func copyHeader(dest http.Header, src http.Header) {
 	for key, srcv := range src {
-		destv := dest[key]
-		if newSize := len(destv) + len(srcv); newSize > cap(destv) {
-			dest[key] = append(make([]string, 0, newSize), destv...)
-		}
 		dest[key] = append(dest[key], srcv...)
 	}
 }
@@ -161,9 +154,8 @@ var securityHeaders = map[string]string{
 	"X-XSS-Protection":        "1; mode=block",
 }
 
-func emitCommonHeaders(w http.ResponseWriter) {
-	h := w.Header()
-	h.Set(headerKeyServer, "chame")
+func emitCommonHeaders(h http.Header) {
+	h.Set("Server", "chame")
 	for k := range securityHeaders {
 		h.Set(k, securityHeaders[k])
 	}
@@ -187,7 +179,7 @@ func httpErrorIfMethodNotAllowed(w http.ResponseWriter, req *http.Request, allow
 		allowed = append(allowed, http.MethodOptions)
 	}
 
-	w.Header().Set(headerKeyAllow, strings.Join(allowed, ","))
+	w.Header().Set("Allow", strings.Join(allowed, ","))
 	if req.Method == http.MethodOptions {
 		// NOTE(yosida95): foundOptions is always false here.
 		w.WriteHeader(http.StatusNoContent)

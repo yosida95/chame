@@ -78,7 +78,8 @@ func (chame *Chame) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
-	emitCommonHeaders(w)
+	hdr := w.Header()
+	emitCommonHeaders(hdr)
 	if req.URL.Path != "/" {
 		httpError(w, http.StatusNotFound)
 		return
@@ -86,7 +87,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 	if !httpErrorIfMethodNotAllowed(w, req, http.MethodGet) {
 		return
 	}
-	w.Header().Set(headerKeyContentType, "text/plain;charset=UTF-8")
+	hdr.Set(headerKeyContentType, "text/plain; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Hello, this is chame!\nVisit https://github.com/yosida95/chame.\n")
 }
@@ -94,7 +95,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 const proxyPrefix = "/i/"
 
 func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
-	emitCommonHeaders(w)
+	emitCommonHeaders(w.Header())
 	if !strings.HasPrefix(userReq.URL.Path, proxyPrefix) {
 		http.NotFound(w, userReq)
 		return
@@ -132,7 +133,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	})
 }
 
-func (chame *Chame) isAcceptableContentType(ctype string) bool {
+func (chame *Chame) checkContentType(ctype string) bool {
 	// As https://tools.ietf.org/html/rfc2045#section-5.1 said,
 	// it is case-insensitive.
 	ctype = strings.ToLower(ctype)
@@ -144,61 +145,66 @@ func (chame *Chame) isAcceptableContentType(ctype string) bool {
 	return false
 }
 
-type responsewriter struct {
+type responseWriter struct {
 	http.ResponseWriter
-	once    sync.Once
 	headers http.Header
-	discard bool
+	checkCT func(string) bool
 
-	isAcceptableContentType func(string) bool
+	once    sync.Once
+	discard bool
 }
 
-var _ http.ResponseWriter = (*responsewriter)(nil)
+var _ http.ResponseWriter = (*responseWriter)(nil)
 
-func (chame *Chame) newResponseWriter(w http.ResponseWriter) *responsewriter {
-	return &responsewriter{
+func (chame *Chame) newResponseWriter(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{
 		ResponseWriter: w,
-		headers:        make(http.Header),
 
-		isAcceptableContentType: chame.isAcceptableContentType,
+		headers: make(http.Header),
+		checkCT: chame.checkContentType,
 	}
 }
 
-func (w *responsewriter) Header() http.Header { return w.headers }
+func (w *responseWriter) Header() http.Header { return w.headers }
 
-func (w *responsewriter) WriteHeader(code int) {
+type RawHeader interface {
+	RawHeader() http.Header
+}
+
+func (w *responseWriter) RawHeader() http.Header {
+	return w.ResponseWriter.Header()
+}
+
+func (w *responseWriter) WriteHeader(code int) {
+	const cl = "Content-Length"
 	w.once.Do(func() {
+		// NOTE(yosida95): override fields set by RawHeader().
 		dest := w.ResponseWriter.Header()
-		src := w.headers
-		copyHeadersOnlyIn(dest, src, passThroughRespHeaders)
+		emitCommonHeaders(dest)
+		copyHeadersOnlyIn(dest, w.headers, passThroughRespHeaders)
 
-		if ctype := dest.Get(headerKeyContentType); ctype != "" {
-			ctype, _, err := mime.ParseMediaType(ctype)
-			if err != nil || !w.isAcceptableContentType(ctype) {
+		ctype := dest.Get(headerKeyContentType)
+		parsed, _, err := mime.ParseMediaType(ctype)
+		if err != nil || !w.checkCT(parsed) {
+			switch {
+			case parsed == "text/plain" && code >= 400:
 				// special handling for error responses
-				if !(code >= http.StatusBadRequest && ctype == "text/plain") {
-					log.Printf("chame: unacceptable Content-Type: %q", ctype)
-					dest.Del(headerKeyContentLength)
-					httpError(w.ResponseWriter, http.StatusBadRequest)
-					w.discard = true
-					return
-				}
-			}
-		} else {
-			w.discard = true
-			if code != http.StatusNotModified {
-				log.Printf("chame: Content-Type not present")
-				dest.Del(headerKeyContentLength)
-				httpError(w.ResponseWriter, http.StatusBadRequest)
+			case ctype == "" && code == http.StatusNotModified:
+				w.discard = true
+				dest.Del(cl)
+			default:
+				log.Printf("chame: unacceptable Content-Type: %q", ctype)
+				w.discard = true
+				dest.Del(cl)
+				httpError(w.ResponseWriter, http.StatusBadGateway)
 				return
 			}
 		}
-
 		w.ResponseWriter.WriteHeader(code)
 	})
 }
 
-func (w *responsewriter) Write(p []byte) (int, error) {
+func (w *responseWriter) Write(p []byte) (int, error) {
 	w.WriteHeader(http.StatusOK)
 	if w.discard {
 		return len(p), nil
