@@ -37,7 +37,7 @@ func newDecodeCmd() *cobra.Command {
 	return cmd
 }
 
-func runDecode(cmd *cobra.Command, args []string) {
+func runDecode(*cobra.Command, []string) {
 	store := FixedStoreFromConfig(cmdflg)
 	decoded, err := chame.DecodeToken(context.Background(), store, cmdflg.Decode.Token)
 	if err != nil {
@@ -45,5 +45,5 @@ func runDecode(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "%s\n", decoded)
+	fmt.Fprintln(os.Stdout, decoded)
 }

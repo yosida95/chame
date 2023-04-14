@@ -37,7 +37,7 @@ func newEncodeCmd() *cobra.Command {
 	return cmd
 }
 
-func runEncode(cmd *cobra.Command, args []string) {
+func runEncode(*cobra.Command, []string) {
 	store := FixedStoreFromConfig(cmdflg)
 	token := &chame.Token{
 		Issuer:  cmdflg.Issuer,

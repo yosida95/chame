@@ -20,12 +20,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/metadata"
-	"golang.org/x/sync/errgroup"
 )
 
 func newServeCmd() *cobra.Command {
@@ -41,7 +41,7 @@ func newServeCmd() *cobra.Command {
 	return cmd
 }
 
-func runServe(cmd *cobra.Command, args []string) {
+func runServe(*cobra.Command, []string) {
 	cfg := &chame.Config{
 		Store: FixedStoreFromConfig(cmdflg),
 	}
@@ -58,39 +58,28 @@ func runServe(cmd *cobra.Command, args []string) {
 		Handler: chame,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	group, ctx := errgroup.WithContext(ctx)
-	group.Go(func() error {
+	errch := make(chan error, 1)
+	go func(errch chan<- error) {
 		glog.Infof("chame: Listen on %q", srv.Addr)
 
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			return err
-		}
-		return nil
-	})
-	group.Go(func() error {
-		<-ctx.Done()
-		if err := srv.Shutdown(context.Background()); err != nil {
+		errch <- srv.ListenAndServe()
+	}(errch)
+
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sigch)
+
+	select {
+	case sig := <-sigch:
+		glog.Infof("chame: Received %s signal", sig)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
 			glog.Warningf("chame: Error on (*http.Server).Shutdown: %v", err)
+			srv.Close()
 		}
-		return nil
-	})
-	group.Go(func() error {
-		sigch := make(chan os.Signal, 1)
-		signal.Notify(sigch, os.Interrupt, syscall.SIGTERM)
-		defer signal.Stop(sigch)
-
-		select {
-		case sig := <-sigch:
-			glog.Infof("chame: Received %s signal", sig)
-			cancel()
-			return nil
-		case <-ctx.Done():
-			return nil
-		}
-	})
-
-	if err := group.Wait(); err != nil {
+		<-errch
+	case err := <-errch:
 		glog.Exitln(err)
 	}
 }

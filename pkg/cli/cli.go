@@ -16,7 +16,6 @@ package cli
 
 import (
 	"flag"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -36,10 +35,6 @@ func init() {
 }
 
 func Main() int {
-	if len(os.Args) == 1 {
-		os.Args = append(os.Args, "help")
-	}
-	rootCmd.SetArgs(os.Args[1:])
 	if err := rootCmd.Execute(); err != nil {
 		return 1
 	}
