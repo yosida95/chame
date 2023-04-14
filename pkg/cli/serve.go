@@ -41,14 +41,12 @@ func newServeCmd() *cobra.Command {
 }
 
 func runServe(*cobra.Command, []string) {
-	cfg := &chame.Config{
-		Store: FixedStoreFromConfig(cmdflg),
-	}
-	chame := chame.New(cfg)
-
 	srv := &http.Server{
-		Addr:    cmdflg.Serve.Address,
-		Handler: chame,
+		Addr: cmdflg.Serve.Address,
+		Handler: &chame.Chame{
+			Proxy: &chame.HTTPProxy{},
+			Store: FixedStoreFromConfig(cmdflg),
+		},
 	}
 
 	errch := make(chan error, 1)

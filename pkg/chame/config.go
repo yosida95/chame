@@ -19,6 +19,7 @@ import (
 	"net/http"
 )
 
+// Deprecated: Initialize Chame directly.
 type Config struct {
 	Store Store
 	Proxy Proxy

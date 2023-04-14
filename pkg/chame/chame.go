@@ -29,31 +29,33 @@ import (
 )
 
 type Chame struct {
-	store  Store
-	proxy  Proxy
-	ctypes []string
+	Proxy Proxy
+	Store Store
+
+	// If ContentType is not nil, it overrides the default list of Content-Type
+	// to be proxied.
+	ContentType []string
+	// ExtraContentType is a list of Content-Type that to be proxied in addition
+	// to the ContentType. In contrast to ContentType, ExtraContentType does not
+	// override the default list.
+	ExtraContentType []string
+
+	ctypes map[string]struct{}
+	once   sync.Once
 }
 
+// Deprecated: Instantiate Chame directly.
 func New(cfg *Config) http.Handler {
 	chame := &Chame{
-		store: cfg.Store,
-		proxy: cfg.Proxy,
+		Proxy:       cfg.Proxy,
+		Store:       cfg.Store,
+		ContentType: cfg.ProxyContentType,
 	}
-	if chame.proxy == nil {
-		chame.proxy = &HTTPProxy{
+	if chame.Proxy == nil {
+		chame.Proxy = &HTTPProxy{
 			httpCFactory: cfg.NewHTTPClient,
 		}
 	}
-
-	ctypes := cfg.ProxyContentType
-	if ctypes == nil {
-		ctypes = defaultProxyContentType
-	}
-	chame.ctypes = make([]string, len(ctypes))
-	for i, ctype := range ctypes {
-		chame.ctypes[i] = strings.ToLower(ctype)
-	}
-
 	return chame
 }
 
@@ -109,7 +111,7 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 		ctx = metadata.New(ctx) //lint:ignore SA1019 backward compatibility
 	}
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
-	decoded, err := DecodeToken(ctx, chame.store, signedURL)
+	decoded, err := DecodeToken(ctx, chame.Store, signedURL)
 	if err != nil {
 		log.Printf("chame: DecodeToken error: %v", err)
 		httpError(w, http.StatusBadRequest)
@@ -126,23 +128,31 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	copyHeadersOnlyIn(filtered, userReq.Header, passThroughReqHeaders)
 
 	w = chame.newResponseWriter(w)
-	chame.proxy.Do(w, &ProxyRequest{
+	chame.Proxy.Do(w, &ProxyRequest{
 		Context: ctx,
 		URL:     reqUrl,
 		Header:  filtered,
 	})
 }
 
+// checkContentType checks if the given ctype is allowed to be proxied. ctype
+// must be in lowercase and should not contain any parameters.
 func (chame *Chame) checkContentType(ctype string) bool {
-	// As https://tools.ietf.org/html/rfc2045#section-5.1 said,
-	// it is case-insensitive.
-	ctype = strings.ToLower(ctype)
-	for _, allowed := range chame.ctypes {
-		if ctype == allowed {
-			return true
+	chame.once.Do(func() {
+		chame.ctypes = map[string]struct{}{}
+		in := chame.ContentType
+		if in == nil {
+			in = defaultProxyContentType
 		}
-	}
-	return false
+		for _, in := range in {
+			chame.ctypes[strings.ToLower(in)] = struct{}{}
+		}
+		for _, in := range chame.ExtraContentType {
+			chame.ctypes[strings.ToLower(in)] = struct{}{}
+		}
+	})
+	_, found := chame.ctypes[ctype]
+	return found
 }
 
 type responseWriter struct {

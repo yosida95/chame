@@ -43,13 +43,12 @@ func main() {
 	flag.CommandLine.Parse([]string{"-logtostderr"})
 	defer glog.Flush()
 
-	cfg := &chame.Config{
-		Store: cli.FixedStoreFromConfig(cmdflg),
-	}
-	chame := chame.New(cfg)
 	srv := &http.Server{
-		Addr:    cmdflg.Serve.Address,
-		Handler: chame,
+		Addr: cmdflg.Serve.Address,
+		Handler: &chame.Chame{
+			Proxy: &chame.HTTPProxy{},
+			Store: cli.FixedStoreFromConfig(cmdflg),
+		},
 	}
 
 	errch := make(chan error, 1)

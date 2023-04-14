@@ -12,7 +12,7 @@ import (
 
 func TestResponseWriter(t *testing.T) {
 	chame := &Chame{
-		ctypes: []string{"image/jpeg"},
+		ContentType: []string{"image/jpeg"},
 	}
 	for _, c := range []struct {
 		codeIn, codeOut int
@@ -108,7 +108,7 @@ func TestResponseWriter(t *testing.T) {
 
 func TestRawHeader(t *testing.T) {
 	chame := &Chame{
-		ctypes: []string{"image/jpeg"},
+		ContentType: []string{"image/jpeg"},
 	}
 	for _, c := range []struct {
 		std    http.Header
