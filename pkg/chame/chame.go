@@ -56,7 +56,7 @@ func New(cfg *Config) http.Handler {
 			httpCFactory: cfg.NewHTTPClient,
 		}
 	}
-	return chame
+	return cfg.applyInterceptors(chame)
 }
 
 func (chame *Chame) ServeHTTP(w http.ResponseWriter, req *http.Request) {
