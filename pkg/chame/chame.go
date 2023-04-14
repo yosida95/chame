@@ -16,6 +16,7 @@ package chame
 
 import (
 	"fmt"
+	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -23,7 +24,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
 	//lint:ignore SA1019 backward compatibility
 	"github.com/yosida95/chame/pkg/metadata"
 )
@@ -110,13 +110,13 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
 	decoded, err := DecodeToken(ctx, chame.store, signedURL)
 	if err != nil {
-		glog.Errorf("chame: failed to decode signed token %q: %v", signedURL, err)
+		log.Printf("chame: DecodeToken error: %v", err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
 	reqUrl, err := url.Parse(decoded)
 	if err != nil {
-		glog.Errorf("chame: malformed URL: %v", err)
+		log.Printf("chame: malformed URL: %v", err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
@@ -177,7 +177,7 @@ func (w *responsewriter) WriteHeader(code int) {
 			if err != nil || !w.isAcceptableContentType(ctype) {
 				// special handling for error responses
 				if !(code >= http.StatusBadRequest && ctype == "text/plain") {
-					glog.Infof("chame: unacceptable Content-Type")
+					log.Printf("chame: unacceptable Content-Type: %q", ctype)
 					dest.Del(headerKeyContentLength)
 					httpError(w.ResponseWriter, http.StatusBadRequest)
 					w.discard = true
@@ -187,7 +187,7 @@ func (w *responsewriter) WriteHeader(code int) {
 		} else {
 			w.discard = true
 			if code != http.StatusNotModified {
-				glog.Infof("chame: Content-Type not present")
+				log.Printf("chame: Content-Type not present")
 				dest.Del(headerKeyContentLength)
 				httpError(w.ResponseWriter, http.StatusBadRequest)
 				return

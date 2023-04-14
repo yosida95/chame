@@ -17,10 +17,9 @@ package chame
 import (
 	"context"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
-
-	"github.com/golang/glog"
 )
 
 type Proxy interface {
@@ -44,7 +43,7 @@ var _ Proxy = (*HTTPProxy)(nil)
 func (f *HTTPProxy) Do(w http.ResponseWriter, userReq *ProxyRequest) {
 	req, err := http.NewRequest(http.MethodGet, userReq.URL.String(), nil)
 	if err != nil {
-		glog.Errorf("chame: failed to constract a HTTP request to fetch origin: %v", err)
+		log.Printf("chame: failed to constract a HTTP request to fetch origin: %v", err)
 		httpError(w, http.StatusBadRequest)
 		return
 	}
@@ -60,7 +59,7 @@ func (f *HTTPProxy) Do(w http.ResponseWriter, userReq *ProxyRequest) {
 	}
 	resp, err := httpC.Do(req)
 	if err != nil {
-		glog.Errorf("chame: failed to fetch the original: %v", err)
+		log.Printf("chame: failed to fetch the original: %v", err)
 		httpError(w, http.StatusInternalServerError)
 		return
 	}
@@ -71,7 +70,7 @@ func (f *HTTPProxy) Do(w http.ResponseWriter, userReq *ProxyRequest) {
 		copyHeader(w.Header(), resp.Header)
 		w.WriteHeader(code)
 		if _, err := io.Copy(w, resp.Body); err != nil {
-			glog.Errorf("chame: failed to forward origin response to the client: %v", err)
+			log.Printf("chame: failed to forward origin response to the client: %v", err)
 			return
 		}
 	case http.StatusNotModified:
