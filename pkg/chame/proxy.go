@@ -41,7 +41,8 @@ type HTTPProxy struct {
 var _ Proxy = (*HTTPProxy)(nil)
 
 func (f *HTTPProxy) Do(w http.ResponseWriter, userReq *ProxyRequest) {
-	req, err := http.NewRequest(http.MethodGet, userReq.URL.String(), nil)
+	req, err := http.NewRequestWithContext(
+		userReq.Context, http.MethodGet, userReq.URL.String(), nil)
 	if err != nil {
 		log.Printf("chame: failed to constract a HTTP request to fetch origin: %v", err)
 		httpError(w, http.StatusBadRequest)
@@ -63,7 +64,10 @@ func (f *HTTPProxy) Do(w http.ResponseWriter, userReq *ProxyRequest) {
 		httpError(w, http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	switch code := resp.StatusCode; code {
 	case http.StatusOK:
@@ -77,10 +81,11 @@ func (f *HTTPProxy) Do(w http.ResponseWriter, userReq *ProxyRequest) {
 		copyHeader(w.Header(), resp.Header)
 		w.WriteHeader(code)
 	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther,
-		http.StatusTemporaryRedirect, 308: // http.StatusPermanentRedirect
-		// max redirects exceeded
+		http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		log.Printf("chame: too many redirects: %q", req.URL)
 		httpError(w, http.StatusBadGateway)
 	default:
+		log.Printf("chame: unexpected HTTP status(%d): %q", code, req.URL)
 		httpError(w, code)
 	}
 }
