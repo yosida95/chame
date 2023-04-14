@@ -19,6 +19,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"sync"
 
@@ -52,10 +53,27 @@ func New(cfg *Config) http.Handler {
 		chame.ctypes[i] = strings.ToLower(ctype)
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", cfg.applyInterceptors(http.HandlerFunc(chame.ServeHome)))
-	mux.Handle(proxyPrefix, cfg.applyInterceptors(http.HandlerFunc(chame.ServeProxy)))
-	return mux
+	return chame
+}
+
+func (chame *Chame) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	p := req.URL.Path
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	p = path.Clean(p)
+	if p != req.URL.Path {
+		http.Redirect(w, req, p, http.StatusPermanentRedirect)
+		return
+	}
+	switch {
+	case p == "/":
+		chame.ServeHome(w, req)
+	case strings.HasPrefix(p, proxyPrefix):
+		chame.ServeProxy(w, req)
+	default:
+		http.NotFound(w, req)
+	}
 }
 
 func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
@@ -76,6 +94,10 @@ const proxyPrefix = "/i/"
 
 func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	emitCommonHeaders(w)
+	if !strings.HasPrefix(userReq.URL.Path, proxyPrefix) {
+		http.NotFound(w, userReq)
+		return
+	}
 	if !httpErrorIfMethodNotAllowed(w, userReq, http.MethodGet) {
 		return
 	}
