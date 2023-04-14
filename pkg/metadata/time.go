@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Deprecated: DO NOT USE
 package metadata
 
 import (
@@ -21,10 +22,12 @@ import (
 
 type timeKey struct{}
 
+// Deprecated: DO NOT USE.
 func WithTime(ctx context.Context) context.Context {
 	return context.WithValue(ctx, timeKey{}, time.Now().UTC())
 }
 
+// Deprecated: DO NOT USE.
 func Time(ctx context.Context) time.Time {
 	if t, ok := ctx.Value(timeKey{}).(time.Time); ok {
 		return t

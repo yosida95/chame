@@ -25,7 +25,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/yosida95/chame/pkg/chame"
-	"github.com/yosida95/chame/pkg/metadata"
 )
 
 func newServeCmd() *cobra.Command {
@@ -45,12 +44,6 @@ func runServe(*cobra.Command, []string) {
 	cfg := &chame.Config{
 		Store: FixedStoreFromConfig(cmdflg),
 	}
-	cfg.UseInterceptor(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := metadata.New(req.Context())
-			next.ServeHTTP(w, req.WithContext(ctx))
-		})
-	})
 	chame := chame.New(cfg)
 
 	srv := &http.Server{

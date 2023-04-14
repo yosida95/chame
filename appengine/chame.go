@@ -27,7 +27,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/yosida95/chame/pkg/chame"
 	"github.com/yosida95/chame/pkg/cli"
-	"github.com/yosida95/chame/pkg/metadata"
 )
 
 var cmdflg = cli.Config{
@@ -47,14 +46,6 @@ func main() {
 	cfg := &chame.Config{
 		Store: cli.FixedStoreFromConfig(cmdflg),
 	}
-	cfg.UseInterceptor(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := metadata.New(req.Context())
-
-			next.ServeHTTP(w, req.WithContext(ctx))
-		})
-	})
-
 	chame := chame.New(cfg)
 	srv := &http.Server{
 		Addr:    cmdflg.Serve.Address,

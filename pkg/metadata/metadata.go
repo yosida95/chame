@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Deprecated: DO NOT USE
 package metadata
 
 import (
 	"context"
 )
 
+// Deprecated: DO NOT USE
 func New(parent context.Context) context.Context {
 	return WithTime(parent)
 }

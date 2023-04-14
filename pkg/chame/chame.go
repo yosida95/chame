@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	//lint:ignore SA1019 backward compatibility
 	"github.com/yosida95/chame/pkg/metadata"
 )
 
@@ -102,10 +103,10 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 		return
 	}
 	ctx := userReq.Context()
+	//lint:ignore SA1019 backward compatibility
 	if time := metadata.Time(ctx); time.IsZero() {
-		ctx = metadata.WithTime(ctx)
+		ctx = metadata.New(ctx) //lint:ignore SA1019 backward compatibility
 	}
-
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
 	decoded, err := DecodeToken(ctx, chame.store, signedURL)
 	if err != nil {
