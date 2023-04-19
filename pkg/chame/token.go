@@ -105,33 +105,42 @@ var parserPool = sync.Pool{
 	},
 }
 
-func DecodeToken(ctx context.Context, store Store, tokenString string) (string, error) {
-	const (
-		leeway = 1 * time.Minute
-	)
+func DecodeToken(_ context.Context, store Store, tokenString string) (string, error) {
 	parser := parserPool.Get().(*jwt.Parser)
 	defer parserPool.Put(parser)
+
 	claims := Token{}
 	_, err := parser.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		kid, _ := token.Header["kid"].(string)
 		return store.GetVerifyingKey(claims.Issuer, kid)
 	})
 	if err != nil {
-		if _, ok := err.(interface {
-			Cause() error
-		}); ok {
-			return "", err
-		}
 		return "", fmt.Errorf("chame: failed to decode signed token: %w", err)
 	}
 
 	now := time.Now()
-	nowMin, nowMax := now.Add(-leeway), now.Add(leeway)
-	if !claims.VerifyNotBefore(nowMax, false) ||
-		!claims.VerifyIssuedAt(nowMax, false) ||
-		!claims.VerifyExpiresAt(nowMin, false) {
+	if err := validateClaims(&claims, now); err != nil {
 		return "", fmt.Errorf("chame: failed to decode signed token: %w", err)
 	}
-
 	return claims.Subject, nil
+}
+
+func validateClaims(claims *Token, now time.Time) error {
+	const leeway = 1 * time.Minute
+	nowMin, nowMax := now.Add(-leeway), now.Add(leeway)
+
+	var jwtErr jwt.ValidationError
+	if !claims.VerifyExpiresAt(nowMin, false) {
+		jwtErr.Errors |= jwt.ValidationErrorExpired
+	}
+	if !claims.VerifyIssuedAt(nowMax, false) {
+		jwtErr.Errors |= jwt.ValidationErrorIssuedAt
+	}
+	if !claims.VerifyNotBefore(nowMax, false) {
+		jwtErr.Errors |= jwt.ValidationErrorNotValidYet
+	}
+	if jwtErr.Errors == 0 {
+		return nil
+	}
+	return &jwtErr
 }

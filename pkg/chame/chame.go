@@ -15,6 +15,7 @@
 package chame
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"mime"
@@ -24,8 +25,8 @@ import (
 	"strings"
 	"sync"
 
-	//lint:ignore SA1019 backward compatibility
-	"github.com/yosida95/chame/pkg/metadata"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/yosida95/chame/pkg/metadata" //lint:ignore SA1019 backward compatibility
 )
 
 type Chame struct {
@@ -117,6 +118,20 @@ func (chame *Chame) ServeProxy(w http.ResponseWriter, userReq *http.Request) {
 	signedURL := userReq.URL.Path[len(proxyPrefix):]
 	decoded, err := DecodeToken(ctx, chame.Store, signedURL)
 	if err != nil {
+		var jwtErr *jwt.ValidationError
+		if errors.As(err, &jwtErr) {
+			switch {
+			case jwtErr.Errors&jwt.ValidationErrorMalformed != 0:
+				http.NotFound(w, userReq)
+				return
+			case jwtErr.Errors&(jwt.ValidationErrorNotValidYet|jwt.ValidationErrorIssuedAt) != 0:
+				http.Error(w, "URL not valid yet", http.StatusNotFound)
+				return
+			case jwtErr.Errors&jwt.ValidationErrorExpired != 0:
+				http.Error(w, "URL expired", http.StatusGone)
+				return
+			}
+		}
 		log.Printf("chame: DecodeToken error: %v", err)
 		httpError(w, http.StatusBadRequest)
 		return

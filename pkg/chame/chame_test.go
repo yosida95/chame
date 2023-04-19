@@ -11,8 +11,33 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+var keyStore Store = bytesKey("secretstring")
+
+type bytesKey []byte
+
+func (key bytesKey) GetSigningKey(iss string, kid string) (interface{}, error) {
+	return []byte(key), nil
+}
+
+func (key bytesKey) GetVerifyingKey(iss, kid string) (any, error) {
+	return []byte(key), nil
+}
+
+type proxyfunc func(http.ResponseWriter, *ProxyRequest)
+
+func (fn proxyfunc) Do(w http.ResponseWriter, req *ProxyRequest) {
+	fn(w, req)
+}
+
 func TestChame_ServeHTTP(t *testing.T) {
-	chame := &Chame{}
+	chame := &Chame{
+		Proxy: proxyfunc(func(w http.ResponseWriter, req *ProxyRequest) {
+			w.Header().Set("Content-Type", "text/plain")
+			fmt.Fprintln(w, req.URL.String())
+		}),
+		Store:            keyStore,
+		ExtraContentType: []string{"text/plain"},
+	}
 	for _, c := range []struct {
 		p        string
 		code     int
@@ -30,13 +55,13 @@ func TestChame_ServeHTTP(t *testing.T) {
 		},
 		{
 			p:        "/i/",
-			code:     http.StatusBadRequest,
-			contains: "Bad Request",
+			code:     http.StatusNotFound,
+			contains: "404",
 		},
 		{
-			p:        "/i/jwt",
-			code:     http.StatusBadRequest,
-			contains: "Bad Request",
+			p:        "/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLmV4YW1wbGUubmV0Iiwic3ViIjoiaHR0cHM6Ly9leGFtcGxlLm5ldC9jYXQuanBlZyJ9.bRzDUy9wgQH4zpHbKdTaB-ww8408Agp8v0qDlAxBJb0",
+			code:     http.StatusOK,
+			contains: "https://example.net/cat.jpeg",
 		},
 		{
 			p:        "/i//jwt",
@@ -47,6 +72,59 @@ func TestChame_ServeHTTP(t *testing.T) {
 			p:        "/i/jwt/",
 			code:     http.StatusPermanentRedirect,
 			contains: `href="/i/jwt"`,
+		},
+	} {
+		t.Log(c.p)
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, c.p, nil)
+		chame.ServeHTTP(w, req)
+		if w.Code != c.code {
+			t.Errorf("expect %d, got %d", c.code, w.Code)
+		}
+		if !strings.Contains(w.Body.String(), c.contains) {
+			t.Errorf("%q not found", c.contains)
+		}
+	}
+}
+
+func TestChame_ServeProxy(t *testing.T) {
+	chame := &Chame{
+		Proxy: proxyfunc(func(w http.ResponseWriter, req *ProxyRequest) {
+			w.Header().Set("Content-Type", "text/plain")
+			fmt.Fprintln(w, req.URL.String())
+		}),
+		Store:            keyStore,
+		ExtraContentType: []string{"text/plain"},
+	}
+	for _, c := range []struct {
+		p        string
+		code     int
+		contains string
+	}{
+		{
+			p:        "/i/",
+			code:     http.StatusNotFound,
+			contains: "404",
+		},
+		{
+			p:        "/i/malformed",
+			code:     http.StatusNotFound,
+			contains: "404",
+		},
+		{
+			p:        "/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLmV4YW1wbGUubmV0Iiwic3ViIjoiaHR0cHM6Ly9leGFtcGxlLm5ldC9jYXQuanBlZyJ9.bRzDUy9wgQH4zpHbKdTaB-ww8408Agp8v0qDlAxBJb0",
+			code:     http.StatusOK,
+			contains: "https://example.net/cat.jpeg",
+		},
+		{
+			p:        "/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLmV4YW1wbGUubmV0Iiwic3ViIjoiaHR0cHM6Ly9leGFtcGxlLm5ldC9jYXQuanBlZyIsImV4cCI6MH0.gVsL5aY-OjGbwUCEBiu-rJ040iG3WVTlpakqff5Py6o",
+			code:     http.StatusGone,
+			contains: "URL expired",
+		},
+		{
+			p:        "/i/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2NoYW1lLmV4YW1wbGUubmV0Iiwic3ViIjoiaHR0cHM6Ly9leGFtcGxlLm5ldC9jYXQuanBlZyIsIm5iZiI6MjUzNDAyMzAwNzk5fQ.ZO591JKh8IPZKhgTNnd6ehQ3CfuGUFwldsgyP9TmFas",
+			code:     http.StatusNotFound,
+			contains: "URL not valid yet",
 		},
 	} {
 		t.Log(c.p)

@@ -16,7 +16,9 @@ package chame
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -56,6 +58,75 @@ func TestEncodeToken(t *testing.T) {
 		if encoded != c.Expected {
 			t.Errorf("%d: expected %q, have %q", i, c.Expected, encoded)
 			continue
+		}
+	}
+}
+
+func TestValidateClaims(t *testing.T) {
+	now := time.Date(2023, 4, 19, 8, 0, 0, 0, time.UTC)
+	for _, c := range []struct {
+		in   Token
+		code uint32
+	}{
+		{
+			in:   Token{},
+			code: 0,
+		},
+		{
+			in: Token{
+				ExpiresAt: toNumericDate(now.Add(-59 * time.Second)),
+			},
+			code: 0,
+		},
+		{
+			in: Token{
+				ExpiresAt: toNumericDate(now.Add(-60 * time.Second)),
+			},
+			code: jwt.ValidationErrorExpired,
+		},
+		{
+			in: Token{
+				IssuedAt: toNumericDate(now.Add(60 * time.Second)),
+			},
+			code: 0,
+		},
+		{
+			in: Token{
+				IssuedAt: toNumericDate(now.Add(61 * time.Second)),
+			},
+			code: jwt.ValidationErrorIssuedAt,
+		},
+		{
+			in: Token{
+				NotBefore: toNumericDate(now.Add(60 * time.Second)),
+			},
+			code: 0,
+		},
+		{
+			in: Token{
+				NotBefore: toNumericDate(now.Add(61 * time.Second)),
+			},
+			code: jwt.ValidationErrorNotValidYet,
+		},
+		{
+			in: Token{
+				ExpiresAt: toNumericDate(now.Add(-60 * time.Second)),
+				IssuedAt:  toNumericDate(now.Add(61 * time.Second)),
+				NotBefore: toNumericDate(now.Add(61 * time.Second)),
+			},
+			code: jwt.ValidationErrorExpired | jwt.ValidationErrorIssuedAt | jwt.ValidationErrorNotValidYet,
+		},
+	} {
+		err := validateClaims(&c.in, now)
+		if err != nil {
+			var jwtErr *jwt.ValidationError
+			if !errors.As(err, &jwtErr) || jwtErr.Errors != c.code {
+				t.Errorf("expect %d, got %#v", c.code, err)
+			}
+			continue
+		}
+		if c.code != 0 {
+			t.Errorf("expected error not occured")
 		}
 	}
 }
