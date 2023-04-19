@@ -88,7 +88,7 @@ func (chame *Chame) ServeHome(w http.ResponseWriter, req *http.Request) {
 	hdr := w.Header()
 	emitCommonHeaders(hdr)
 	if req.URL.Path != "/" {
-		httpError(w, http.StatusNotFound)
+		http.NotFound(w, req)
 		return
 	}
 	if !httpErrorIfMethodNotAllowed(w, req, http.MethodGet) {
