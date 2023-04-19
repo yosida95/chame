@@ -33,12 +33,12 @@ type Chame struct {
 	Proxy Proxy
 	Store Store
 
-	// If ContentType is not nil, it overrides the default list of Content-Type
-	// to be proxied.
+	// ContentType is a list of Content-Type values allowed to be proxied. If
+	// ContentType is nil, DefaultContentType will be used.
 	ContentType []string
-	// ExtraContentType is a list of Content-Type that to be proxied in addition
-	// to the ContentType. In contrast to ContentType, ExtraContentType does not
-	// override the default list.
+	// ExtraContentType is a list of Content-Type values allowed to be proxied
+	// alongside ContentType. In contrast to ContentType, ExtraContentType
+	// does not override the default list.
 	ExtraContentType []string
 
 	ctypes map[string]struct{}
@@ -161,7 +161,7 @@ func (chame *Chame) checkContentType(ctype string) bool {
 		chame.ctypes = map[string]struct{}{}
 		in := chame.ContentType
 		if in == nil {
-			in = defaultProxyContentType
+			in = defaultContentType
 		}
 		for _, in := range in {
 			chame.ctypes[strings.ToLower(in)] = struct{}{}
@@ -172,6 +172,62 @@ func (chame *Chame) checkContentType(ctype string) bool {
 	})
 	_, found := chame.ctypes[ctype]
 	return found
+}
+
+var defaultContentType []string
+
+func init() {
+	defaultContentType = append([]string(nil), DefaultContentType...)
+}
+
+// DefaultContentType is the default value of Chame.ContentType. These values
+// are taken from https://github.com/atmos/camo/blob/bd731cff64fd61a7ee4ea7dd6e96b8e0b69c3da0/mime-types.json
+// DefaultContentType is provided for only documentation purpose and modifying
+// it has no effect.
+var DefaultContentType = []string{
+	"image/bmp",
+	"image/cgm",
+	"image/g3fax",
+	"image/gif",
+	"image/ief",
+	"image/jp2",
+	"image/jpeg",
+	"image/jpg",
+	"image/pict",
+	"image/png",
+	"image/prs.btif",
+	"image/svg+xml",
+	"image/tiff",
+	"image/vnd.adobe.photoshop",
+	"image/vnd.djvu",
+	"image/vnd.dwg",
+	"image/vnd.dxf",
+	"image/vnd.fastbidsheet",
+	"image/vnd.fpx",
+	"image/vnd.fst",
+	"image/vnd.fujixerox.edmics-mmr",
+	"image/vnd.fujixerox.edmics-rlc",
+	"image/vnd.microsoft.icon",
+	"image/vnd.ms-modi",
+	"image/vnd.net-fpx",
+	"image/vnd.wap.wbmp",
+	"image/vnd.xiff",
+	"image/webp",
+	"image/x-cmu-raster",
+	"image/x-cmx",
+	"image/x-icon",
+	"image/x-macpaint",
+	"image/x-pcx",
+	"image/x-pict",
+	"image/x-portable-anymap",
+	"image/x-portable-bitmap",
+	"image/x-portable-graymap",
+	"image/x-portable-pixmap",
+	"image/x-quicktime",
+	"image/x-rgb",
+	"image/x-xbitmap",
+	"image/x-xpixmap",
+	"image/x-xwindowdump",
 }
 
 type responseWriter struct {
