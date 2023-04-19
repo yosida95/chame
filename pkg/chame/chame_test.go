@@ -5,10 +5,62 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
+
+func TestChame_ServeHTTP(t *testing.T) {
+	chame := &Chame{}
+	for _, c := range []struct {
+		p        string
+		code     int
+		contains string
+	}{
+		{
+			p:        "/",
+			code:     http.StatusOK,
+			contains: "Hello",
+		},
+		{
+			p:        "/i?key=value",
+			code:     http.StatusPermanentRedirect,
+			contains: `href="/i/?key=value"`,
+		},
+		{
+			p:        "/i/",
+			code:     http.StatusBadRequest,
+			contains: "Bad Request",
+		},
+		{
+			p:        "/i/jwt",
+			code:     http.StatusBadRequest,
+			contains: "Bad Request",
+		},
+		{
+			p:        "/i//jwt",
+			code:     http.StatusPermanentRedirect,
+			contains: `href="/i/jwt"`,
+		},
+		{
+			p:        "/i/jwt/",
+			code:     http.StatusPermanentRedirect,
+			contains: `href="/i/jwt"`,
+		},
+	} {
+		t.Log(c.p)
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, c.p, nil)
+		chame.ServeHTTP(w, req)
+		if w.Code != c.code {
+			t.Errorf("expect %d, got %d", c.code, w.Code)
+		}
+		if !strings.Contains(w.Body.String(), c.contains) {
+			t.Errorf("%q not found", c.contains)
+		}
+	}
+}
 
 func TestResponseWriter(t *testing.T) {
 	chame := &Chame{

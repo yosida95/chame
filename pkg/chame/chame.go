@@ -65,8 +65,12 @@ func (chame *Chame) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		p = "/" + p
 	}
 	p = path.Clean(p)
+	if n := len(p); len(proxyPrefix)-n == 1 && proxyPrefix[:n] == p {
+		p = proxyPrefix
+	}
 	if p != req.URL.Path {
-		http.Redirect(w, req, p, http.StatusPermanentRedirect)
+		req.URL.Path = p
+		http.Redirect(w, req, req.URL.String(), http.StatusPermanentRedirect)
 		return
 	}
 	switch {
