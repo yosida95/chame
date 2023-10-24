@@ -49,5 +49,5 @@ workflows:
           matrix:
             parameters:
               tag:
-                - "1.19"
                 - "1.20"
+                - "1.21"
