@@ -1,7 +1,7 @@
 ---
 version: 2.1
 orbs:
-  go: circleci/go@1.10
+  go: circleci/go@1.11
 jobs:
   build:
     docker:
