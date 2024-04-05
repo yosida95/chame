@@ -19,6 +19,19 @@ import (
 	"testing"
 )
 
+func TestClientBaseURL(t *testing.T) {
+	const baseURL = "https://chame.yosida95.com"
+	client, err := NewClient(baseURL, "https://chame.yosida95.com", store)
+	if err != nil {
+		t.Errorf("failed to get new Client: %v", err)
+		return
+	}
+
+	if have := client.BaseURL(); have != baseURL {
+		t.Errorf("expect %q, got %q", baseURL, have)
+	}
+}
+
 func TestClientSign(t *testing.T) {
 	client, err := NewClient("https://chame.yosida95.com", "https://chame.yosida95.com", store)
 	if err != nil {

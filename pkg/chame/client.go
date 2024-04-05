@@ -38,15 +38,18 @@ func NewClient(baseUrl string, issuer string, store Store) (*Client, error) {
 		parsed.Fragment != "" {
 		return nil, fmt.Errorf("Base URL must not contain query nor fragment")
 	}
-	// path.Join trims the ending slash.
-	parsed.Path = path.Join(parsed.Path, proxyPrefix) + "/"
-
+	parsed.Path = path.Clean(parsed.Path)
+	if parsed.Path == "/" || parsed.Path == "." {
+		parsed.Path = ""
+	}
 	return &Client{
 		baseUrl: parsed.String(),
 		issuer:  issuer,
 		store:   store,
 	}, nil
 }
+
+func (cli *Client) BaseURL() string { return cli.baseUrl }
 
 func (cli *Client) Sign(ctx context.Context, url string, opts SignOption) (string, error) {
 	if opts.NotAfter.IsZero() && !opts.Expiry.IsZero() {
@@ -63,7 +66,7 @@ func (cli *Client) Sign(ctx context.Context, url string, opts SignOption) (strin
 		return "", err
 	}
 
-	return cli.baseUrl + signed, nil
+	return cli.baseUrl + proxyPrefix + signed, nil
 }
 
 type SignOption struct {
