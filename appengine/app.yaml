@@ -1,5 +1,5 @@
 ---
-runtime: go121
+runtime: go123
 env_variables:
   CHAME_ISSUER: https://chame.yosida95.com
   CHAME_SECRET: supersecretstring
